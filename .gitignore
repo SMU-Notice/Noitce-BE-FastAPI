@@ -1,0 +1,62 @@
+# Python Bytecode files
+__pycache__/
+*.pyc
+*.pyo
+
+# FastAPI-specific
+*.sqlite3  # SQLite database files (if used)
+instance/  # instance folder for configurations (e.g. for Flask)
+
+# Virtual environments
+env/
+venv/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# dotenv files
+.env
+.env.*  # For multiple environment config files
+
+# FastAPI - Logs (if applicable)
+*.log
+
+# Pytest
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.hypothesis/
+
+# mypy
+.mypy_cache/
+
+# coverage
+.coverage
+.coverage.*
+*.hypothesis/
+
+# static files
+/static/
+
+# .env and any file containing sensitive information
+config/.env

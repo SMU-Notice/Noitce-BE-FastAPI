@@ -1,0 +1,10 @@
+fastapi              # FastAPI web framework
+uvicorn              # ASGI server
+sqlalchemy           # SQLAlchemy ORM
+databases            # Asynchronous database connection library
+mysqlclient          # MySQL client
+aiomysql             # Asynchronous MySQL client
+apscheduler          # Library for handling scheduled tasks
+requests             # Library for making HTTP requests
+beautifulsoup4       # HTML parsing library
+python-dotenv        # To load environment variables from .env file
