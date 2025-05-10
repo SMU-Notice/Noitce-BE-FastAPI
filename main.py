@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-from routes.test_router import router
+from app.routes.test_router import router
 from contextlib import asynccontextmanager
-from services.scheduler.scheduler import SchedulerService  # 우리가 만든 스케줄러 클래스
-from services.board_scrapper.manager import BoardScraperManager
-from services.board_scrapper.board_main import ExampleScraper1, ExampleScraper2
+# from services.scheduler.scheduler import SchedulerService  # 우리가 만든 스케줄러 클래스
+from app.services.scheduler.scheduler_async import SchedulerService  # 비동기 스케줄러 클래스
+from app.services.board_scrapper.scrapper_manager import BoardScraperManager
+from app.services.board_scrapper import main_sangmyung, main_seoul
 
 # 동기 작업 예시
 def hello_scheduler():
@@ -12,14 +13,15 @@ def hello_scheduler():
 # ✅ 스케줄러 객체 생성 (전역 변수로 관리)
 scheduler_service = SchedulerService()
 board_manager = BoardScraperManager()
-# scheduler_service.add_interval_job(hello_scheduler, 5)
+
 # 실행할 함수만 직접 등록
-scheduler_service.add_interval_job(board_manager.execute_next_scraper, seconds=5)
+scheduler_service.add_interval_job(board_manager.execute_next_scraper, seconds=10)
 
 # 스크래퍼 추가
-board_manager.add_scraper(ExampleScraper1())
-board_manager.add_scraper(ExampleScraper2())
+board_manager.add_scraper(main_sangmyung.MainBoardSangmyungScraper())
+board_manager.add_scraper(main_seoul.MainBoardSeoulScraper())
 
+# 비동기 라이프사이클 관리
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting scheduler...")

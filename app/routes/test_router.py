@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.db import get_db
-from services.test import get_test_message, add_test_message
+from app.database.db import get_db
+from app.services.test import get_test_message, add_test_message
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.db import get_db  # get_db는 DB 세션을 가져오는 종속성 함수
-from schemas.test import MessageCreate, MessageResponse
+from app.schemas.test import MessageCreate, MessageResponse
 
 
 router = APIRouter()

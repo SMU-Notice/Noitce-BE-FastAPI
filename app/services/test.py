@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import insert
-from models.test import TestModel
+from app.models.test import TestModel
 
 # DB에서 Hello 메시지를 가져오는 서비스 함수 (비동기)
 async def get_test_message(db: AsyncSession) -> str:

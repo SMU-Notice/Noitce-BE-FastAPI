@@ -60,3 +60,6 @@ coverage.xml
 
 # .env and any file containing sensitive information
 config/.env
+
+__pycache__/
+*.py[cod]

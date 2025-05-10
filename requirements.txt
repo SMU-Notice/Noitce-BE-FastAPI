@@ -8,3 +8,4 @@ apscheduler          # Library for handling scheduled tasks
 requests             # Library for making HTTP requests
 beautifulsoup4       # HTML parsing library
 python-dotenv        # To load environment variables from .env file
+aiohttp              # Asynchronous HTTP client/server
