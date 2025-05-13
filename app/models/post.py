@@ -3,6 +3,7 @@ from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy import Column, Integer, String, Text, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
 
 
 Base = declarative_base()
@@ -31,4 +32,4 @@ class Post(Base):
     url = Column(Text, nullable=False)
     has_reference = Column(Boolean, nullable=False, default=False)
     posted_date = Column(Date, nullable=False)
-    scraped_at = Column(DateTime, server_default=func.current_timestamp())
+    scraped_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))

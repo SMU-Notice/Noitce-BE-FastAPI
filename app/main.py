@@ -15,7 +15,7 @@ scheduler_service = SchedulerService()
 board_manager = BoardScraperManager()
 
 # 실행할 함수만 직접 등록
-scheduler_service.add_interval_job(board_manager.execute_next_scraper, seconds=10)
+scheduler_service.add_interval_job(board_manager.execute_next_scraper, seconds=3600)
 
 # 스크래퍼 추가
 board_manager.add_scraper(main_sangmyung.MainBoardSangmyungScraper())

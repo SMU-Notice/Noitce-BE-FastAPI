@@ -35,6 +35,7 @@ ehthumbs.db
 
 # dotenv files
 .env
+.env.test
 .env.*  # For multiple environment config files
 
 # FastAPI - Logs (if applicable)
@@ -63,3 +64,5 @@ config/.env
 
 __pycache__/
 *.py[cod]
+
+docker-compose.yml

@@ -26,7 +26,10 @@ class BoardScraperManager:
 
                 # 데이터베이스에 저장
                 new_posts = await handle_scraped_posts(scraped_posts)
-                print(f"새로운 post: {new_posts}")
+                if new_posts:
+                    print(f"새로운 post: {len(new_posts)}개")
+                else:
+                    print("새로운 post가 없습니다.")
 
                 # 다시 큐 뒤로 보냄
                 self.scraper_queue.append(scraper)  

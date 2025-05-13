@@ -1,7 +1,7 @@
 from app.models.post import Post
 from app.database.db import get_db
 from app.repository.post_respository import PostRepository
-from datetime import datetime
+from datetime import datetime, timezone
 
 async def handle_scraped_posts(scraped_posts: dict) -> dict:
     new_posts = []
