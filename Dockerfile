@@ -1,30 +1,38 @@
-# 베이스 이미지 설정
-FROM python:3.9-slim
+# ✅ 1단계: 빌드용 이미지
+FROM python:3.9-slim AS builder
 
-# 비대화 모드 설정
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 필수 패키지 설치
+# 빌드에 필요한 도구 설치
 RUN apt-get update && apt-get install -y \
-    build-essential \
+    gcc \
     pkg-config \
     default-libmysqlclient-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 작업 디렉토리 설정
+WORKDIR /install
+
+COPY requirements.txt .
+
+# pip 업그레이드 및 패키지 설치
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+
+#------------#
+
+# ✅ 2단계: 실행용 경량 이미지
+FROM python:3.9-slim
+
 WORKDIR /code
 
-# 의존성 파일 복사
-COPY ./requirements.txt /code/requirements.txt
+# 빌더에서 패키지만 복사
+COPY --from=builder /usr/local /usr/local
 
-# 의존성 설치
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
-
-# 앱 복사
+# 앱 소스 복사
 COPY . /code
 
 EXPOSE 8000
 
-# 앱 실행
-CMD ["uvicorn", "app.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
+
