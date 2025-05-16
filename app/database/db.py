@@ -1,10 +1,16 @@
+import logging
 import os
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import AsyncSession
 
+# 로깅 설정: SQLAlchemy 쿼리 로그 끄기 (echo=True 상태에서도)
+logging.basicConfig()
+logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy.dialects').setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy.pool').setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy.orm').setLevel(logging.WARNING)
 
 # .env 파일 로드
 load_dotenv()
@@ -18,9 +24,9 @@ Base = declarative_base()
 # 비동기 SQLAlchemy 엔진
 engine = create_async_engine(
     DATABASE_URL, 
-    echo=True, 
-    pool_recycle=1800,  # 30분마다 커넥션 재활용 (MySQL 대비 설정)
-    pool_pre_ping=True   # 연결이 유효한지 미리 확인 (끊어진 연결 방지)
+    echo=False,              # 디버깅용으로 SQL 출력 설정 (필요시 False로)
+    pool_recycle=1800,      # 30분마다 커넥션 재활용
+    pool_pre_ping=True      # 연결이 유효한지 미리 확인
 )
 
 # 비동기 세션 생성
@@ -30,7 +36,7 @@ AsyncSessionLocal = sessionmaker(
     expire_on_commit=False,
 )
 
-# get_db() 함수 수정 (직접 AsyncSession 반환)
-async def get_db():
-    async with AsyncSessionLocal() as session:  # 비동기 세션을 async with로 관리
-        yield session  # 세션 객체 반환
+# get_db() 함수 (의존성 주입용)
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        yield session
