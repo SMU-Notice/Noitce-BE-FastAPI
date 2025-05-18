@@ -1,11 +1,14 @@
+import logging
 from app.services.board_scrapper.base import BoardScraper
 import requests
 from bs4 import BeautifulSoup
 import re
 
+logger = logging.getLogger(__name__)
+
 class MainBoardSangmyungScraper(BoardScraper):
     def __init__(self):
-    # 기본 URL과 파라미터를 클래스 내부에 지정
+        # 기본 URL과 파라미터를 클래스 내부에 지정
         self.base_url = "https://www.smu.ac.kr/kor/life/notice.do"
         self.params = {
             "srCampus": "smu",
@@ -16,7 +19,7 @@ class MainBoardSangmyungScraper(BoardScraper):
         self.board_id = 1
 
     def scrape(self) -> dict:
-        print("MainBoardSangmyungScraper: 시작")
+        logger.info("MainBoardSangmyungScraper: 시작")
         """게시판 데이터를 크롤링하는 메서드"""
         # 웹페이지 요청
         response = requests.get(self.base_url, params=self.params)
@@ -91,11 +94,7 @@ class MainBoardSangmyungScraper(BoardScraper):
                 "has_reference": has_attachment  
             }
 
-            
+        logger.info("스크랩된 post ids: %s", ', '.join(str(post_id) for post_id in posts.keys()))
+        logger.info("MainBoardSangmyungScraper: 완료")
 
-
-
-        print(posts)
-        print("MainBoardSangmyungScraper: 완료")
-
-        return {"board_id" : self.board_id, "count": len(posts), "data" : posts}
+        return {"board_id": self.board_id, "count": len(posts), "data": posts}
