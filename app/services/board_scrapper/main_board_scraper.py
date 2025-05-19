@@ -6,9 +6,14 @@ import re
 
 logger = logging.getLogger(__name__)
 
-class MainBoardSeoulScraper(BoardScraper):
+class MainBoardScraper(BoardScraper):
 
-    def __init__(self):
+
+    def __init__(self, campus_filter: str, board_id: int):
+        """
+        :param campus_filter: 크롤링 대상 캠퍼스 ('sang' or 'seoul')
+        :param board_id: 게시판 ID
+        """
         # 기본 URL과 파라미터를 클래스 내부에 지정
         self.base_url = "https://www.smu.ac.kr/kor/life/notice.do"
         self.params = {
@@ -17,12 +22,13 @@ class MainBoardSeoulScraper(BoardScraper):
             "articleLimit": 50, 
             "article.offset": 0
         }
-        self.board_id = 2
+        self.campus_filter = campus_filter  # "sang" or "seoul"
+        self.board_id = board_id
         
 
     def scrape(self) -> dict:
-        logger.info("MainBoardSeoulScraper: 시작")
         """게시판 데이터를 크롤링하는 메서드"""
+        logger.info(f"MainBoardScraper({self.campus_filter}): 시작")
         # 웹페이지 요청
         response = requests.get(self.base_url, params=self.params)
         response.raise_for_status()  # 요청 실패 시 예외 발생
@@ -41,15 +47,10 @@ class MainBoardSeoulScraper(BoardScraper):
             # 캠퍼스 정보
             campus_tag = li.select_one(".cmp")
             if campus_tag:
-                campus_class = campus_tag["class"]  # 클래스 목록 가져오기
-                if "sang" in campus_class:
-                    # 상명인 경우는 처리하지 않고 건너뛰기
-                    continue  
-                    campus = "상명"
-                elif "seoul" in campus_class:
-                    campus = "서울"
-                else:
-                    campus = "N/A"
+                campus_class = campus_tag["class"]
+                if self.campus_filter not in campus_class:
+                    continue
+                campus = "상명" if self.campus_filter == "sang" else "서울"
             else:
                 campus = "N/A"
 
@@ -97,14 +98,20 @@ class MainBoardSeoulScraper(BoardScraper):
             }
 
         logger.info("스크랩된 post ids: %s", ', '.join(str(post_id) for post_id in posts.keys()))
-        logger.info("MainBoardSeoulScraper: 완료")
+        logger.info(f"MainBoardScraper({self.campus_filter}): 완료")
 
         return {"board_id" : self.board_id, "count": len(posts), "data" : posts}
 
 
 # 테스트 실행    
+# 테스트 실행
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    scraper = MainBoardSeoulScraper()
-    data = scraper.scrape()
-    print(data)
+
+    print("✅ 상명 캠퍼스 테스트:")
+    sang_scraper = MainBoardScraper(campus_filter="sang", board_id=1)
+    print(sang_scraper.scrape())
+
+    print("\n✅ 서울 캠퍼스 테스트:")
+    seoul_scraper = MainBoardScraper(campus_filter="seoul", board_id=2)
+    print(seoul_scraper.scrape())

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 # from services.scheduler.scheduler import SchedulerService  # 우리가 만든 스케줄러 클래스
 from app.services.scheduler.scheduler_async import SchedulerService  # 비동기 스케줄러 클래스
 from app.services.board_scrapper.scrapper_manager import BoardScraperManager
-from app.services.board_scrapper import main_sangmyung, main_seoul
+from app.services.board_scrapper import main_board_scraper, main_sangmyung
 
 
 
@@ -31,7 +31,7 @@ scheduler_service = SchedulerService()
 board_manager = BoardScraperManager()
 
 # 실행할 함수만 직접 등록
-scheduler_service.add_interval_job(board_manager.execute_next_scraper, seconds=3600)
+scheduler_service.add_interval_job(board_manager.execute_next_scraper, seconds=10)
 
 # # SchedulerService 인스턴스
 # scheduler = SchedulerService()
@@ -43,8 +43,9 @@ scheduler_service.add_interval_job(board_manager.execute_next_scraper, seconds=3
 #     scheduler.add_interval_job(scraper.scrape, scraper.get_interval())
 
 # 스크래퍼 추가
-board_manager.add_scraper(main_sangmyung.MainBoardSangmyungScraper())
-board_manager.add_scraper(main_seoul.MainBoardSeoulScraper())
+# board_manager.add_scraper(main_sangmyung.MainBoardSangmyungScraper())
+board_manager.add_scraper(main_board_scraper.MainBoardScraper(campus_filter="sang", board_id=1))
+board_manager.add_scraper(main_board_scraper.MainBoardScraper(campus_filter="seoul", board_id=2))
 
 # 비동기 라이프사이클 관리
 @asynccontextmanager
@@ -53,7 +54,7 @@ async def lifespan(app: FastAPI):
     scheduler_service.start()  # 앱 시작 시 스케줄러 실행
     yield
     logger.info("Shutting down scheduler...")
-    scheduler_service.stop()  # 앱 종료 시 스케줄러 정리
+    scheduler_service.stop()  # 앱 종료 시 스ddw케줄러 정리
 
 # ✅ FastAPI 인스턴스 생성
 app = FastAPI(lifespan=lifespan)
