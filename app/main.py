@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 # from services.scheduler.scheduler import SchedulerService  # 우리가 만든 스케줄러 클래스
 from app.services.scheduler.scheduler_async import SchedulerService  # 비동기 스케줄러 클래스
 from app.services.board_scrapper.scrapper_manager import BoardScraperManager
-from app.services.board_scrapper import main_board_scraper, main_sangmyung
+from app.services.board_scrapper.main_board_scraper import MainBoardScraper
 
 
 
@@ -28,24 +28,22 @@ def hello_scheduler():
 
 # ✅ 스케줄러 객체 생성 (전역 변수로 관리)
 scheduler_service = SchedulerService()
-board_manager = BoardScraperManager()
+# board_manager = BoardScraperManager()
 
-# 실행할 함수만 직접 등록
-scheduler_service.add_interval_job(board_manager.execute_next_scraper, seconds=10)
+# # 실행할 함수만 직접 등록
+# scheduler_service.add_interval_job(board_manager.execute_next_scraper, seconds=10)
 
-# # SchedulerService 인스턴스
-# scheduler = SchedulerService()
 
-# # ScraperManager를 사용하지 않고 바로 등록
-# scrapers = [JobScraper(), NewsScraper()]
+# board_manager.add_scraper(main_board_scraper.MainBoardScraper(campus_filter="sang", board_id=1))
+# board_manager.add_scraper(main_board_scraper.MainBoardScraper(campus_filter="seoul", board_id=2))
 
-# for scraper in scrapers:
-#     scheduler.add_interval_job(scraper.scrape, scraper.get_interval())
+# 상명 캠퍼스 크롤러 등록
+sang_scraper = MainBoardScraper(campus_filter="sang", board_id=1)
+scheduler_service.add_scrape_job(sang_scraper)
 
-# 스크래퍼 추가
-# board_manager.add_scraper(main_sangmyung.MainBoardSangmyungScraper())
-board_manager.add_scraper(main_board_scraper.MainBoardScraper(campus_filter="sang", board_id=1))
-board_manager.add_scraper(main_board_scraper.MainBoardScraper(campus_filter="seoul", board_id=2))
+# 서울 캠퍼스 크롤러 등록
+seoul_scraper = MainBoardScraper(campus_filter="seoul", board_id=2)
+scheduler_service.add_scrape_job(seoul_scraper)
 
 # 비동기 라이프사이클 관리
 @asynccontextmanager

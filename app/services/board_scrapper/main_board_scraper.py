@@ -24,11 +24,12 @@ class MainBoardScraper(BoardScraper):
         }
         self.campus_filter = campus_filter  # "sang" or "seoul"
         self.board_id = board_id
+        self.interval = 10  # 1시간 간격으로 크롤링 (3600초)
         
 
     def scrape(self) -> dict:
         """게시판 데이터를 크롤링하는 메서드"""
-        logger.info(f"MainBoardScraper({self.campus_filter}): 시작")
+        # logger.info(f"MainBoardScraper({self.campus_filter}): 시작")
         # 웹페이지 요청
         response = requests.get(self.base_url, params=self.params)
         response.raise_for_status()  # 요청 실패 시 예외 발생
@@ -98,7 +99,7 @@ class MainBoardScraper(BoardScraper):
             }
 
         logger.info("스크랩된 post ids: %s", ', '.join(str(post_id) for post_id in posts.keys()))
-        logger.info(f"MainBoardScraper({self.campus_filter}): 완료")
+        # logger.info(f"MainBoardScraper({self.campus_filter}): 완료")
 
         return {"board_id" : self.board_id, "count": len(posts), "data" : posts}
 
