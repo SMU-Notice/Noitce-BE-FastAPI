@@ -3,33 +3,27 @@ from app.services.board_scrapper.base import BoardScraper
 import requests
 from bs4 import BeautifulSoup
 import re
+from app.config.scraper_config import get_scraper_config, ScraperConfig
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
 class MainBoardScraper(BoardScraper):
 
-
-    def __init__(self, campus_filter: str, board_id: int):
+    def __init__(self, config_name: str):
         """
-        :param campus_filter: 크롤링 대상 캠퍼스 ('sang' or 'seoul')
-        :param board_id: 게시판 ID
+        :param config_name: 스크래퍼 설정 이름 (예: "main_board_sangmyung", "main_board_seoul")
         """
-        # 기본 URL과 파라미터를 클래스 내부에 지정
-        self.base_url = "https://www.smu.ac.kr/kor/life/notice.do"
-        self.params = {
-            "srCampus": "smu",
-            "mode": "list", 
-            "articleLimit": 50, 
-            "article.offset": 0
-        }
-        self.campus_filter = campus_filter  # "sang" or "seoul"
-        self.board_id = board_id
-        self.interval = 10  # 1시간 간격으로 크롤링 (3600초)
+        config = get_scraper_config(config_name)
+        self.base_url = config.base_url
+        self.params = config.params
+        self.campus_filter = config.campus
+        self.board_id = config.board_id
+        self.interval = config.interval
         
 
     def scrape(self) -> dict:
         """게시판 데이터를 크롤링하는 메서드"""
-        # logger.info(f"MainBoardScraper({self.campus_filter}): 시작")
         # 웹페이지 요청
         response = requests.get(self.base_url, params=self.params)
         response.raise_for_status()  # 요청 실패 시 예외 발생
@@ -51,7 +45,7 @@ class MainBoardScraper(BoardScraper):
                 campus_class = campus_tag["class"]
                 if self.campus_filter not in campus_class:
                     continue
-                campus = "상명" if self.campus_filter == "sang" else "서울"
+                campus = "상명" if self.campus_filter == "sangmyung" else "서울"
             else:
                 campus = "N/A"
 
@@ -105,14 +99,13 @@ class MainBoardScraper(BoardScraper):
 
 
 # 테스트 실행    
-# 테스트 실행
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     print("✅ 상명 캠퍼스 테스트:")
-    sang_scraper = MainBoardScraper(campus_filter="sang", board_id=1)
-    print(sang_scraper.scrape())
+    sangmyung_scraper = MainBoardScraper(config_name="main_board_sangmyung")
+    print(sangmyung_scraper.scrape())
 
     print("\n✅ 서울 캠퍼스 테스트:")
-    seoul_scraper = MainBoardScraper(campus_filter="seoul", board_id=2)
+    seoul_scraper = MainBoardScraper(config_name="main_board_seoul")
     print(seoul_scraper.scrape())

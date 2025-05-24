@@ -21,12 +21,14 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 # Base 선언 (모든 모델의 베이스 클래스)
 Base = declarative_base()
 
-# 비동기 SQLAlchemy 엔진
+# 비동기 SQLAlchemy 엔진 설정
 engine = create_async_engine(
-    DATABASE_URL, 
-    echo=False,              # 디버깅용으로 SQL 출력 설정 (필요시 False로)
-    pool_recycle=1800,      # 30분마다 커넥션 재활용
-    pool_pre_ping=True      # 연결이 유효한지 미리 확인
+    DATABASE_URL,               # 데이터베이스 접속 URL
+    echo=False,                 # SQL 쿼리를 로그로 출력할지 여부 (디버깅용)
+    pool_size=7,               # 커넥션 풀의 기본 연결 수 (초기 커넥션 수)
+    max_overflow=20,            # 풀 외에 추가로 허용할 커넥션 수 (최대 10 + 20 = 30까지 가능)
+    pool_recycle=1800,          # 30분(1800초) 마다 커넥션 재활용 (MySQL의 timeout 방지 등)
+    pool_pre_ping=True          # 커넥션 사용 전 유효한지 검사하여 끊긴 커넥션 자동 복구
 )
 
 # 비동기 세션 생성

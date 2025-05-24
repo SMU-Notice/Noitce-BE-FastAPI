@@ -38,12 +38,12 @@ scheduler_service = SchedulerService()
 # board_manager.add_scraper(main_board_scraper.MainBoardScraper(campus_filter="seoul", board_id=2))
 
 # 상명 캠퍼스 크롤러 등록
-sang_scraper = MainBoardScraper(campus_filter="sang", board_id=1)
-scheduler_service.add_scrape_job(sang_scraper)
+scraper = MainBoardScraper(config_name="main_board_sangmyung")  # 상명 캠퍼스
+scheduler_service.add_scrape_job(scraper)
 
 # 서울 캠퍼스 크롤러 등록
-seoul_scraper = MainBoardScraper(campus_filter="seoul", board_id=2)
-scheduler_service.add_scrape_job(seoul_scraper)
+scraper = MainBoardScraper(config_name="main_board_seoul")  # 서울 캠퍼스
+scheduler_service.add_scrape_job(scraper)
 
 # 비동기 라이프사이클 관리
 @asynccontextmanager
@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
     scheduler_service.start()  # 앱 시작 시 스케줄러 실행
     yield
     logger.info("Shutting down scheduler...")
-    scheduler_service.stop()  # 앱 종료 시 스ddw케줄러 정리
+    scheduler_service.stop()  # 앱 종료 시 스케줄러 정리
 
 # ✅ FastAPI 인스턴스 생성
 app = FastAPI(lifespan=lifespan)

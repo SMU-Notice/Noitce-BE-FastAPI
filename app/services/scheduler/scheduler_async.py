@@ -35,16 +35,23 @@ class SchedulerService:
         """
         async def job():
             board_name = f"{scraper.__class__.__name__}_{getattr(scraper, 'board_id', 'unknown')}"
-            logger.info(f"[{board_name}] 스크랩 대기 중...")
-            async with self.scrape_lock:  # 락이 해제될 때까지 기다림
+
+            # 스크래핑 작업이 이미 실행 중인 경우 대기
+            if self.scrape_lock.locked():
+                logger.info(f"[{board_name}] 스크랩 대기 중...")
+
+            # 스크래핑 작업이 실행 중이지 않은 경우
+            async with self.scrape_lock:
                 logger.info(f"[{board_name}] 스크랩 시작")
                 scraped = scraper.scrape()
                 await handle_scraped_posts(scraped)
                 logger.info(f"[{board_name}] 스크랩 완료")
 
+        # 스크래퍼의 interval 속성에서 주기를 가져옴
         interval = getattr(scraper, 'interval', 3600)
         job_id = f"{scraper.__class__.__name__}_{getattr(scraper, 'board_id', 'unknown')}"
 
+        # 스케줄러에 작업 추가
         self.scheduler.add_job(job, "interval", seconds=interval, id=job_id)
         logger.info(f"등록된 작업: {job_id} (interval={interval}s)")
 
