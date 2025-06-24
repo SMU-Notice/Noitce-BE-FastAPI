@@ -18,7 +18,7 @@ SCRAPER_CONFIGS = {
             "articleLimit": 50,
             "article.offset": 0
         },
-        interval=10,  # 1시간
+        interval=3600,  # 1시간
         campus="sangmyung"
     ),
     "main_board_seoul": ScraperConfig(
@@ -30,7 +30,7 @@ SCRAPER_CONFIGS = {
             "articleLimit": 50,
             "article.offset": 0
         },
-        interval=10,  # 1시간
+        interval=3600,  # 1시간
         campus="seoul"
     )
 }

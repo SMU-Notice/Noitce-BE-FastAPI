@@ -6,7 +6,7 @@ import logging
 from typing import Callable, List, Dict, Any
 from app.board.infra.scraper.board_scraper_base import BoardScraper
 from app.board.domain.post import Post
-from app.board.infra.scraper.models.scraped_post import ScrapedPost
+from app.board.infra.scraper.db_models.scraped_post import ScrapedPost
 from app.board.application.scrape_board_handler import ScrapedPostHandler
 
 logger = logging.getLogger(__name__)
