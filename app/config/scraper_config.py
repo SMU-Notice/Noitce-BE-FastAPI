@@ -18,7 +18,7 @@ SCRAPER_CONFIGS = {
             "articleLimit": 50,
             "article.offset": 0
         },
-        interval=3600,  # 1시간
+        interval=10,  # 1시간
         campus="sangmyung"
     ),
     "main_board_seoul": ScraperConfig(
@@ -30,7 +30,7 @@ SCRAPER_CONFIGS = {
             "articleLimit": 50,
             "article.offset": 0
         },
-        interval=3600,  # 1시간
+        interval=10,  # 1시간
         campus="seoul"
     )
 }
@@ -45,4 +45,4 @@ def get_scraper_config(scraper_name: str) -> ScraperConfig:
     Returns:
         ScraperConfig: 스크래퍼 설정
     """
-    return SCRAPER_CONFIGS.get(scraper_name, SCRAPER_CONFIGS["main_board_sangmyung"])
+    return SCRAPER_CONFIGS.get(scraper_name)
