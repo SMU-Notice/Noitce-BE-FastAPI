@@ -28,6 +28,8 @@ FastAPI 기반 게시판 스크래핑 시스템으로, 대학교 공지사항을
 
 ### DDD(Domain-Driven Design) 계층 구조
 
+![image](https://github.com/user-attachments/assets/accdd58e-8537-4fd4-a0c7-ed61a2a1df98)
+
 ```
 app/
 ├── main.py                     # FastAPI 엔트리포인트
