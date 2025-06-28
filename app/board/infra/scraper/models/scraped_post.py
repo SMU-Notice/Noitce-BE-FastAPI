@@ -1,7 +1,4 @@
-# domains/board/infrastructure/scrapers/models/scraped_post.py
 from pydantic import BaseModel, field_validator, Field
-from typing import Optional
-from datetime import date, datetime
 
 class ScrapedPost(BaseModel):
     """게시물 데이터를 위한 Pydantic 모델"""

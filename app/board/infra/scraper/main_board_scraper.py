@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import re
 from app.board.infra.scraper.board_scraper_base import BoardScraper
 from app.config.scraper_config import get_scraper_config
-from app.board.infra.scraper.db_models.scraped_post import ScrapedPost
+from app.board.infra.scraper.models.scraped_post import ScrapedPost
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ class MainBoardScraper(BoardScraper):
         logger.info("스크랩된 post ids: %s", ', '.join(str(original_post_id) for original_post_id in posts.keys()))
         # logger.info(f"MainBoardScraper({self.campus_filter}): 완료")
 
-        return {"board_id" : self.board_id, "count": len(posts), "data" : posts}
+        return {"board_id" : self.board_id, "scraped_count": len(posts), "data" : posts}
 
 
 # 테스트 실행    
