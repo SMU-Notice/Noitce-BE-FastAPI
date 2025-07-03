@@ -12,12 +12,15 @@ from app.database.db import get_db
 
 class PostRepository(IPostRepository):
     
-    async def create_posts(self, posts: List[PostVO]) -> None:
+    async def create_posts(self, posts: List[PostVO]) -> List[PostVO]:
         """
-        여러 개의 게시글을 배치로 저장합니다.
+        여러 개의 게시글을 배치로 저장하고 저장된 데이터를 반환합니다.
         
         Args:
             posts (List[PostVO]): 저장할 게시글 도메인 객체 리스트
+            
+        Returns:
+            List[PostVO]: 저장된 게시글 객체 리스트 (DB에서 생성된 ID 등 포함)
             
         Raises:
             SQLAlchemyError: 데이터베이스 저장 중 오류 발생 시
@@ -28,8 +31,18 @@ class PostRepository(IPostRepository):
                 post_models = self._convert_to_models_batch(posts)
                 
                 # 배치 추가
-                db.add_all(post_models)  # add_all이 for문보다 빠름
+                db.add_all(post_models)
+                
+                # flush()로 DB에 반영하되 트랜잭션은 유지 (ID 등 자동생성 값 획득)
+                await db.flush()
+                
+                # 저장된 모델들을 배치로 VO 변환
+                saved_post_vos = self._convert_to_domains_batch(post_models)
+                
+                # 최종 커밋
                 await db.commit()
+                
+                return saved_post_vos
                 
             except SQLAlchemyError as e:
                 await db.rollback()

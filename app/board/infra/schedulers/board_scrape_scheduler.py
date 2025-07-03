@@ -1,9 +1,9 @@
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import logging
-from typing import List, Dict, Any
 from app.board.infra.scraper.board_scraper_base import BoardScraper
 from app.board.application.scraped_post_manager import ScrapedPostManager
+from app.board.infra.http_new_post_sender import HttpNewPostSender
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class BoardScrapeScheduler:
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
         self.scrape_lock = asyncio.Lock()
-        self.scraped_post_manager = ScrapedPostManager()
+        self.scraped_post_manager = ScrapedPostManager(new_post_sender=HttpNewPostSender(webhook_endpoint="http://127.0.0.1:8080/api/board-subscription/new-posts"))
 
     def start(self):
         """스케줄러 시작"""

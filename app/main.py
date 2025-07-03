@@ -1,11 +1,7 @@
 import logging
 from fastapi import FastAPI
-from app.routes.test_router import router
 from contextlib import asynccontextmanager
-# from app.services.scheduler.scheduler_async import SchedulerService  # 비동기 스케줄러 클래스
-# from app.services.board_scrapper.main_board_scraper import MainBoardScraper
 from app.board.infra.schedulers.board_scrape_scheduler import BoardScrapeScheduler
-from app.board.infra.scraper.main_board_scraper import MainBoardScraper
 from app.board.infra.schedulers.scraper_initializer import initialize_scrapers
 
 
@@ -53,7 +49,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # 라우터 등록
-app.include_router(router)
 
 # 기본 엔드포인트
 @app.get("/")

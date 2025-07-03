@@ -13,16 +13,20 @@ class NewPostHandler:
     def __init__(self, post_repo: PostRepository = None):
         self.post_repo = post_repo or PostRepository()
     
-    async def handle_new_posts(self, new_posts: List[PostVO]) -> None:
+    async def handle_new_posts(self, new_posts: List[PostVO]) -> List[PostVO]:
         """
-        새로운 게시물들을 처리 (저장)
+        새로운 게시물들을 처리 (저장) 후 저장된 데이터 반환
         
         Parameters:
         - new_posts: 저장할 신규 PostVO 객체 목록
+        
+        Returns:
+        - List[PostVO]: 저장된 게시물 객체 목록 (ID 등 DB에서 생성된 값 포함)
         """
         try:
-            await self.post_repo.create_posts(new_posts)
-            logger.info("NewPostHandler: %d개 신규 게시물 저장 완료", len(new_posts))
+            saved_posts = await self.post_repo.create_posts(new_posts)
+            logger.info("NewPostHandler: %d개 신규 게시물 저장 완료", len(saved_posts))
+            return saved_posts
         except SQLAlchemyError as e:
             logger.error("NewPostHandler: 저장 실패: %s", e)
             raise

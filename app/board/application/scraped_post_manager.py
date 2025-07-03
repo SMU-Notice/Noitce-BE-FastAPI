@@ -1,13 +1,14 @@
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.board.application.post_classifier import PostClassifier
 from app.board.application.post_processor import PostProcessor
 from app.board.application.converters.post_converter import PostConverter
 from app.board.application.dto.classification_result import ClassificationResult
-from app.board.domain.post import Post as PostVO
+from app.board.domain.post import Post
+from app.board.application.dto.new_post_notification import NewPostNotificationDTO
+from app.board.application.interfaces.new_post_sender import INewPostSender
 
 logger = logging.getLogger(__name__)
-
 
 class ScrapedPostManager:
     """
@@ -16,11 +17,13 @@ class ScrapedPostManager:
     
     def __init__(self, 
                  post_classifier: PostClassifier = None,
-                 post_processor: PostProcessor = None):
+                 post_processor: PostProcessor = None,
+                 new_post_sender: INewPostSender = None):
         self.classifier = post_classifier or PostClassifier()
         self.processor = post_processor or PostProcessor()
+        self.new_post_sender = new_post_sender
     
-    async def manage_scraped_posts(self, scraped_posts: Dict[str, Any]) -> List[PostVO]:
+    async def manage_scraped_posts(self, scraped_posts: Dict[str, Any]) -> List[Post]:
         """
         스크래핑된 게시물 처리 메인 메서드
         
@@ -28,7 +31,7 @@ class ScrapedPostManager:
         - scraped_posts: 스크래핑된 raw 데이터 (ScrapedPost 형태)
         
         Returns:
-        - List[PostVO]: 새로 저장된 게시물 목록
+        - List[Post]: 새로 저장된 게시물 목록
         """
         logger.info("manage_scraped_posts: 시작")
         
@@ -39,7 +42,21 @@ class ScrapedPostManager:
         classification_result: ClassificationResult = await self.classifier.classify_posts(domain_data)
         
         # 3. 처리 (조건부)
-        await self.processor.process_posts(classification_result)
+        notification_dto: Optional[NewPostNotificationDTO] = await self.processor.process_posts(classification_result)
+        
+        # 4. 외부 알림 전송 (새 게시물이 있으면)
+        if notification_dto:
+            try:
+                logger.info("새 게시물 외부 알림 전송 시작 - board_id: %d, post_types: %s", 
+                           notification_dto.board_id, notification_dto.post_types)
+                
+                await self.new_post_sender.send_notification(notification_dto)
+                
+                logger.info("새 게시물 외부 알림 전송 완료")
+                
+            except Exception as e:
+                # 외부 알림 실패해도 전체 프로세스는 계속 진행
+                logger.error("새 게시물 외부 알림 전송 실패: %s", e)
         
         logger.info("manage_scraped_posts: 완료, 신규 게시물 개수=%d", len(classification_result.new_posts))
         return classification_result.new_posts

@@ -11,3 +11,5 @@ beautifulsoup4       # HTML 파싱 라이브러리 (크롤링 등)
 python-dotenv        # .env 파일로부터 환경변수 로딩
 aiohttp              # 비동기 HTTP 클라이언트/서버
 pydantic             # 데이터 검증 및 설정 관리 (FastAPI와 함께 사용)
+dependency-injector  # DI 컨테이너 라이브러리
+aiohttp              # 비동기 HTTP 요청 라이브러리
