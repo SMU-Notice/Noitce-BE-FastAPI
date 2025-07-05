@@ -48,7 +48,7 @@ class BoardScrapeScheduler:
                 logger.info(f"[{board_name}] 스크랩 시작")
                 
                 # 스크래퍼에서 raw 데이터 받기 (변환 없이)
-                scraped_posts_dto = scraper.scrape()
+                scraped_posts_dto = await scraper.scrape()
                 
                 # Manager에게 raw 데이터 그대로 전달 (변환은 Manager에서 처리)
                 await self.scraped_post_manager.manage_scraped_posts(scraped_posts_dto)
