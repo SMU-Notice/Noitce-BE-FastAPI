@@ -3,44 +3,28 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.board.infra.schedulers.board_scrape_scheduler import BoardScrapeScheduler
 from app.board.infra.schedulers.scraper_initializer import initialize_scrapers
-
+from app.config.logging_config import setup_logging
 
 
 # 로깅 설정
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler()  # 콘솔 출력,
-    ],
-    force=True
-)
+setup_logging()
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
-# 동기 작업 예시
-def hello_scheduler():
-    logger.info("Hello, Scheduler!")
-
-# ✅ 스케줄러 객체 생성 (전역 변수로 관리)
+# 스케줄러 객체 생성 
 board_scheduler = BoardScrapeScheduler()
-
-
-# board_manager.add_scraper(main_board_scraper.MainBoardScraper(campus_filter="sang", board_id=1))
-# board_manager.add_scraper(main_board_scraper.MainBoardScraper(campus_filter="seoul", board_id=2))
 
 
 # 비동기 라이프사이클 관리
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting scheduler...")
-    board_scheduler .start()  # 앱 시작 시 스케줄러 실행
+    board_scheduler.start()  # 앱 시작 시 스케줄러 실행
 
     # 모든 스크래퍼 등록
     initialize_scrapers(board_scheduler)
 
     yield # 서버 실행
-
 
     logger.info("Shutting down scheduler...")
     board_scheduler.stop()  # 앱 종료 시 스케줄러 정리
