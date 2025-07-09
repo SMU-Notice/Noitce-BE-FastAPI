@@ -36,6 +36,7 @@ ehthumbs.db
 # dotenv files
 .env
 .env.test
+.env.prod
 .env.*  # For multiple environment config files
 
 # FastAPI - Logs (if applicable)
