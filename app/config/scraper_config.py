@@ -1,3 +1,4 @@
+import os
 from pydantic import BaseModel
 from typing import Dict, Literal
 
@@ -7,6 +8,10 @@ class ScraperConfig(BaseModel):
     params: Dict[str, str | int]
     interval: int
     campus: Literal["sangmyung", "seoul"]
+
+# 스크래퍼 이름 기반 interval 환경변수 (기본값: 3600초 = 1시간)
+MAIN_BOARD_SANGMYUNG_INTERVAL = int(os.getenv("MAIN_BOARD_SANGMYUNG_INTERVAL", 3600))
+MAIN_BOARD_SEOUL_INTERVAL = int(os.getenv("MAIN_BOARD_SEOUL_INTERVAL", 3600))
 
 SCRAPER_CONFIGS = {
     "main_board_sangmyung": ScraperConfig(
@@ -18,7 +23,7 @@ SCRAPER_CONFIGS = {
             "articleLimit": 50,
             "article.offset": 0
         },
-        interval=10,  # 1시간
+        interval=MAIN_BOARD_SANGMYUNG_INTERVAL,
         campus="sangmyung"
     ),
     "main_board_seoul": ScraperConfig(
@@ -30,7 +35,7 @@ SCRAPER_CONFIGS = {
             "articleLimit": 50,
             "article.offset": 0
         },
-        interval=10,  # 1시간
+        interval=MAIN_BOARD_SEOUL_INTERVAL,
         campus="seoul"
     )
 }
