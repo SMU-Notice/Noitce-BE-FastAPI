@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Any, Tuple
 from app.board.infra.repository.post_repo import PostRepository
-from app.board.domain.post import Post
+from app.board.application.post_processor import PostProcessor
 from app.board.application.dto.classification_result import ClassificationResult
 
 logger = logging.getLogger(__name__)
@@ -12,6 +12,7 @@ class PostClassifier:
     
     def __init__(self, post_repo: PostRepository = None):
         self.post_repo = post_repo or PostRepository()
+        self.post_processor = PostProcessor()
     
     async def classify_posts(self, scraped_posts: Dict[str, Any]) -> ClassificationResult:
         """
@@ -43,7 +44,9 @@ class PostClassifier:
         logger.info("PostClassifier: 분류 완료 - 신규: %d개, 기존: %d개", 
                    len(result.new_posts), len(result.existing_posts_updates))
         
-        return result
+        # PostProcessor를 통해 게시물 처리
+        return await self.post_processor.process_posts(result)
+    
     
     async def _get_existing_posts_mapping(self, board_id: int, scraped_count: int) -> Dict[str, int]:
         """DB에서 기존 게시물 조회하여 매핑 생성"""
