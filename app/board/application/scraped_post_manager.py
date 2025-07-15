@@ -17,10 +17,8 @@ class ScrapedPostManager:
     
     def __init__(self, 
                  post_classifier: PostClassifier = None,
-                 post_processor: PostProcessor = None,
                  new_post_sender: INewPostSender = None):
         self.classifier = post_classifier or PostClassifier()
-        self.processor = post_processor or PostProcessor()
         self.new_post_sender = new_post_sender
     
     async def manage_scraped_posts(self, scraped_posts: Dict[str, Any]) -> List[Post]:
@@ -41,21 +39,18 @@ class ScrapedPostManager:
         # 2. 분류
         classification_result: ClassificationResult = await self.classifier.classify_posts(domain_data)
         
-        # 3. 처리 (조건부)
-        notification_dto: Optional[NewPostNotificationDTO] = await self.processor.process_posts(classification_result)
+        # 3. 처리 (PostProcessor는 여기서만 생성)
+        processor = PostProcessor()
+        notification_dto: Optional[NewPostNotificationDTO] = await processor.process_posts(classification_result)
         
         # 4. 외부 알림 전송 (새 게시물이 있으면)
-        if notification_dto:
+        if notification_dto and self.new_post_sender:
             try:
                 logger.info("새 게시물 외부 알림 전송 시작 - board_id: %d, post_types: %s", 
                            notification_dto.board_id, notification_dto.post_types)
-                
                 await self.new_post_sender.send_notification(notification_dto)
-                
                 logger.info("새 게시물 외부 알림 전송 완료")
-                
             except Exception as e:
-                # 외부 알림 실패해도 전체 프로세스는 계속 진행
                 logger.error("새 게시물 외부 알림 전송 실패: %s", e)
         
         logger.info("manage_scraped_posts: 완료, 신규 게시물 개수=%d", len(classification_result.new_posts))
