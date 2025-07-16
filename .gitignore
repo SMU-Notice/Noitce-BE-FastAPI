@@ -66,4 +66,5 @@ config/.env
 __pycache__/
 *.py[cod]
 
+# Docker files
 docker-compose.yml

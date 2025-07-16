@@ -6,7 +6,7 @@ from app.board.application.converters.post_converter import PostConverter
 from app.board.application.dto.classification_result import ClassificationResult
 from app.board.domain.post import Post
 from app.board.application.dto.new_post_notification import NewPostNotificationDTO
-from app.board.application.interfaces.new_post_sender import INewPostSender
+from app.board.application.ports.new_post_sender import INewPostSender
 
 logger = logging.getLogger(__name__)
 

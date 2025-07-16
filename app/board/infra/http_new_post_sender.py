@@ -1,7 +1,7 @@
 from typing import Optional
 import aiohttp
 import logging
-from app.board.application.interfaces.new_post_sender import INewPostSender
+from app.board.application.ports.new_post_sender import INewPostSender
 from app.board.application.dto.new_post_notification import NewPostNotificationDTO
 
 # 로거 설정
