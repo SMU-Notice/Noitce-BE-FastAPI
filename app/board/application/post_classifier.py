@@ -25,7 +25,7 @@ class PostClassifier:
         - ClassificationResult: 분류 결과
         """
         board_id = scraped_posts["board_id"]
-        scraped_count = scraped_posts["scraped_count"]
+        scraped_count = scraped_posts["scraped _count"]
         data = scraped_posts["data"]
 
         logger.info("PostClassifier: 게시물 분류 시작 (board_id=%s, scraped_count=%s)", board_id, scraped_count)

@@ -13,7 +13,7 @@ FastAPI 기반 게시판 스크래핑 시스템으로, 대학교 공지사항을
 
 ## 1. 프로젝트 소개
 
-- **목적**: 대학교 게시판의 공지사항을 자동으로 수집하여 통합 관리
+- **목적**: 대학교 게시판의 공지사항들을 자동으로 수집하여 통합 관리
 - **특징**: DDD 아키텍처 적용으로 확장 가능하고 유지보수 용이한 구조
 - **기술**: FastAPI, SQLAlchemy, APScheduler를 활용한 비동기 처리
 
@@ -300,24 +300,17 @@ GET /health
 }
 ```
 
-## 🧪 테스트
-
-```bash
-# 테스트 실행
-pytest tests/
-
-# 커버리지 확인
-pytest --cov=app tests/
 ```
 
 ## 🤝 기여하기
 
 1. Fork 프로젝트
 2. Feature 브랜치 생성 (`git checkout -b feature/new-scraper`)
-3. 변경사항 커밋 (`git commit -am 'Add new scraper'`)
+3. 변경사항 커밋 (`git commit -am 'feat:Add new scraper'`)
 4. 브랜치에 Push (`git push origin feature/new-scraper`)
 5. Pull Request 생성
 
 ## 📝 라이센스
 
 이 프로젝트는 MIT 라이센스를 따릅니다.
+```

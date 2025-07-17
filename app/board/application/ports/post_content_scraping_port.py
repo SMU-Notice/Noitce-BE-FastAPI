@@ -1,11 +1,7 @@
 from abc import ABC, abstractmethod
-from pydantic import BaseModel
-from typing import List, Optional
 from app.board.domain.post import Post
+from app.board.application.dto.scraped_content import ScrapedContent
 
-class ScrapedContent(BaseModel):
-    text: Optional[str] = None
-    image_urls: Optional[List[str]] = None
 
 # PostContentScraperPort 인터페이스
 class PostContentScraperPort(ABC):

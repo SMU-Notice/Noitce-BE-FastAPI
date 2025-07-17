@@ -3,8 +3,11 @@ import re
 import aiohttp
 import logging
 from urllib.parse import urljoin
-from app.board.application.ports.post_content_scraping_port import PostContentScraperPort, ScrapedContent
+from app.board.application.ports.post_content_scraping_port import PostContentScraperPort
+from app.board.application.dto.scraped_content import ScrapedContent
 import app.board.domain.post as Post
+from app.board.application.summary_service import SummaryService
+
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -21,6 +24,8 @@ class WebPostContentScraper(PostContentScraperPort):
         Returns:
             ScrapedContent: 추출된 텍스트와 이미지 URL 리스트
         """
+        summary_service = SummaryService()
+
         try:
             logger.info("게시물 추출 시작 (게시물 이름): %s", post.title)
             logger.info("게시물 추출 시작 (게시물 url): %s", post.url)
@@ -53,10 +58,16 @@ class WebPostContentScraper(PostContentScraperPort):
             
             logger.info(f"추출 완료 - 텍스트: {text_length}자, 이미지: {image_count}개")
             
-            ScrapedContent(
+            scarped_content = ScrapedContent(
                 text=result['text'],
                 image_urls=result['image_urls']
             )
+
+            summary_result = await summary_service.create_summary(scarped_content)
+
+            logger.info(f"요약 결과 - 성공 여부: {summary_result.is_successful}, 요약 길이: {len(summary_result.summary) if summary_result.summary else 0}자")
+
+            post.content_summary = summary_result.summary if summary_result.is_successful else scarped_content.text
 
             return post
             
