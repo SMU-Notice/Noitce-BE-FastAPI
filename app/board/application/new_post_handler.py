@@ -7,6 +7,7 @@ from app.board.application.ports.post_content_scraping_port import PostContentSc
 from app.board.infra.scraper.posts.web_post_content_scraper import WebPostContentScraper
 from app.board.application.dto.processed_post_dto import ProcessedPostDTO
 from app.board.infra.repository.event_location_time_repo import EventLocationTimeRepository
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,9 @@ class NewPostHandler:
     
     def __init__(self, post_repo: PostRepository = None, content_scraper: PostContentScraperPort = None, location_repo: EventLocationTimeRepository = None):
         self.post_repo = post_repo or PostRepository()
-        self.content_scraper = content_scraper or WebPostContentScraper()
+        # 환경변수로 상세 스크랩 여부 결정
+        self.enable_scraping = os.environ.get("ENABLE_DETAIL_SCRAPING", "false").lower() == "true"
+        self.content_scraper = content_scraper or (WebPostContentScraper() if self.enable_scraping else None)
         self.location_repo = location_repo or EventLocationTimeRepository()
     
     async def handle_new_posts(self, new_posts: List[PostVO]) -> List[PostVO]:
@@ -45,21 +48,26 @@ class NewPostHandler:
                 continue
 
             try:
-                processed_dto: ProcessedPostDTO = await self.content_scraper.extract_post_from_url(post)
-                logger.info("게시물 내용 추출 완료: %s", processed_dto.post.title)
-                
-                # Post 객체 추가
-                processed_posts.append(processed_dto.post)
-                
-                # Location 엔티티가 있으면 추가
-                if processed_dto.has_location():
-                    location_entities.append(processed_dto.location)
-                    logger.info("위치 정보 추가: %s", processed_dto.location.location)
-                
-                # OCR 엔티티가 있으면 추가 (현재는 구현되지 않음)
-                if processed_dto.has_ocr():
-                    ocr_entities.append(processed_dto.ocr_entity)
-                    logger.info("OCR 정보 추가")
+                if self.enable_scraping and self.content_scraper:
+                    processed_dto: ProcessedPostDTO = await self.content_scraper.extract_post_from_url(post)
+                    logger.info("게시물 내용 추출 완료: %s", processed_dto.post.title)
+                    
+                    # Post 객체 추가
+                    processed_posts.append(processed_dto.post)
+                    
+                    # Location 엔티티가 있으면 추가
+                    if processed_dto.has_location():
+                        location_entities.append(processed_dto.location)
+                        logger.info("위치 정보 추가: %s", processed_dto.location.location)
+                    
+                    # OCR 엔티티가 있으면 추가 (현재는 구현되지 않음)
+                    if processed_dto.has_ocr():
+                        ocr_entities.append(processed_dto.ocr_entity)
+                        logger.info("OCR 정보 추가")
+                else:
+                    # 그냥 받은 post 그대로 저장
+                    processed_posts.append(post)
+                    logger.info("게시물 내용 추출 완료 (스크래핑 비활성화): %s", post.title)
             
             except Exception as e:
                 logger.error("게시물 내용 추출 중 오류 발생: %s - %s", post.title, e)

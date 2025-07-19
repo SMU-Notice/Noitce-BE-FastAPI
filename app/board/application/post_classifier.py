@@ -71,6 +71,7 @@ class PostClassifier:
         """original_post_id 기준으로 분류 - Post 객체로 업데이트 정보 전달"""
         new_posts = []
         existing_posts_updates = []
+        existing_ids = []
         
         for original_post_id in reversed(scraped_data):
             post_data = scraped_data[original_post_id]  # 이미 Post 엔티티로 변환된 객체
@@ -84,11 +85,16 @@ class PostClassifier:
                 updated_post.id = existing_post.id  # DB의 기존 ID 설정
                 
                 existing_posts_updates.append(updated_post)
-                logger.debug("기존 게시물 업데이트 대상: original_post_id=%s", original_post_id)
+                existing_ids.append(str(original_post_id))
             else:
                 # 신규 게시물 - 이미 변환된 Post 객체 그대로 사용
                 new_posts.append(post_data)
                 logger.info("신규 게시물: original_post_id=%s, title=%s", 
                            original_post_id, post_data.title)
+        
+        # 기존 게시물 업데이트 대상 로그를 한 줄에 모두 출력
+        if existing_ids:
+            display_ids = ', '.join(existing_ids)
+            logger.debug("기존 게시물 업데이트 대상: %s", display_ids)
         
         return new_posts, existing_posts_updates

@@ -152,7 +152,7 @@ class PostRepository(IPostRepository):
                     
                     # 배치 업데이트 쿼리 생성
                     batch_update_query = text(f"""
-                        UPDATE posts SET
+                        UPDATE post SET
                             title = CASE {' '.join(title_cases)} END,
                             content_summary = CASE {' '.join(content_summary_cases)} END,
                             view_count = CASE {' '.join(view_count_cases)} END,
