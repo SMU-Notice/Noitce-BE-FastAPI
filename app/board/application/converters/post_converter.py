@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, List
 from app.board.domain.post import Post
 from app.board.infra.scraper.models.scraped_post import ScrapedPost
 
@@ -55,3 +55,25 @@ class PostConverter:
         result["data"] = converted_data
         
         return result
+    
+    @staticmethod
+    def convert_scraped_data_to_post_list(scraped_posts_dict: Dict[str, Any]) -> List[Post]:
+        """
+        스크래핑된 딕셔너리 데이터를 Post 도메인 객체 리스트로 변환
+        
+        Parameters:
+        - scraped_posts_dict: {"board_id": int, "scraped_count": int, "data": {...}}
+        
+        Returns:
+        - List[Post]: Post 도메인 객체 리스트
+        """
+        board_id = scraped_posts_dict["board_id"]
+        scraped_data = scraped_posts_dict["data"]
+        
+        # data를 Post 객체 리스트로 변환
+        post_list = [
+            PostConverter.scraped_to_domain(scraped_post, board_id)
+            for original_post_id, scraped_post in scraped_data.items()
+        ]
+        
+        return post_list

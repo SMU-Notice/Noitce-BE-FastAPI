@@ -64,11 +64,20 @@ class OpenAISummaryAdapter(SummaryPort):
         """1차 필터: 게시물 본문을 간결하게 요약합니다."""
         content_str = str(content.text)  # ScrapedContent를 문자열로 변환
         
-        if not content_str or len(content_str.strip()) < 10:
-            logger.warning("요약할 내용이 너무 짧습니다. 내용: %s", content_str)
-            return SummarizedScrapedContent.failure(
+        # 0자면 내용이 없다고 반환
+        if not content_str or len(content_str.strip()) == 0:
+            logger.warning("요약할 내용이 없습니다.")
+            return SummarizedScrapedContent.success(
                 original_content=content_str,
-                error_message="내용이 너무 짧아 요약할 수 없습니다."
+                summary="내용 없음"
+            )
+        
+        # 50자 이하면 그대로 반환 (요약할 필요 없음)
+        if len(content_str.strip()) <= 50:
+            logger.info("내용이 짧아서 그대로 반환합니다. 길이: %d자", len(content_str.strip()))
+            return SummarizedScrapedContent.success(
+                original_content=content_str,
+                summary=content_str.strip()
             )
         
         try:
@@ -155,8 +164,12 @@ class OpenAISummaryAdapter(SummaryPort):
                 max_tokens=200,
                 temperature=0.1
             )
-        
-        result_text = response.choices[0].message.content.strip()
+            
+            result_text = response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            logger.error(f"OpenAI API 호출 중 오류 발생: {e}")
+            return None
         
         # JSON 파싱 시도
         try:
@@ -218,15 +231,15 @@ class OpenAISummaryAdapter(SummaryPort):
                 )
                 
             except ValueError as e:
-                print(f"날짜/시간 파싱 오류: {e}")
+                logger.error(f"날짜/시간 파싱 오류: {e}")
                 # 파싱 오류가 있어도 location이 있으면 객체 생성
                 return EventLocationTime(location=location)
                 
             
         except json.JSONDecodeError:
-            print(f"JSON 파싱 실패. 원본 응답: {result_text}")
+            logger.error(f"JSON 파싱 실패. 원본 응답: {result_text}")
             return None
             
         except Exception as e:
-            print(f"구조화된 정보 추출 중 오류 발생: {e}")
+            logger.error(f"구조화된 정보 추출 중 오류 발생: {e}")
             return None

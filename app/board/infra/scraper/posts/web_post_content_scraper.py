@@ -5,6 +5,7 @@ import logging
 from urllib.parse import urljoin
 from app.board.application.ports.post_content_scraping_port import PostContentScraperPort
 from app.board.application.dto.scraped_content import ScrapedContent
+from app.board.application.dto.processed_post_dto import ProcessedPostDTO
 import app.board.domain.post as Post
 from app.board.application.summary_service import SummaryService
 
@@ -14,15 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 class WebPostContentScraper(PostContentScraperPort):
-    async def extract_post_from_url(self, post: Post) -> Post:
+    async def extract_post_from_url(self, post: Post) -> ProcessedPostDTO:
         """
         URL에서 게시물 내용을 추출하는 메서드
         
         Args:
-            Post: 추출할 게시물 Post 객체
+            post: 추출할 게시물 Post 객체
             
         Returns:
-            ScrapedContent: 추출된 텍스트와 이미지 URL 리스트
+            ProcessedPostDTO: Post, Location, OCR 엔티티를 포함한 처리 결과
         """
         summary_service = SummaryService()
 
@@ -34,7 +35,7 @@ class WebPostContentScraper(PostContentScraperPort):
             html_content = await self._fetch_page_content(post.url)
             if not html_content:
                 logger.warning(f"HTML 가져오기 실패: {post.url}")
-                return ScrapedContent(text=None, image_urls=None)
+                return ProcessedPostDTO.create_with_post_only(post)
             
             logger.debug(f"HTML 가져오기 성공 - 크기: {len(html_content)} bytes")
             
@@ -46,7 +47,7 @@ class WebPostContentScraper(PostContentScraperPort):
             post_content = self._find_post_content(soup)
             if not post_content:
                 logger.warning(f"게시물 본문을 찾을 수 없음: {post.url}")
-                return ScrapedContent(text=None, image_urls=None)
+                return ProcessedPostDTO.create_with_post_only(post)
             
             logger.debug("게시물 본문 영역 찾기 완료")
             
@@ -58,22 +59,20 @@ class WebPostContentScraper(PostContentScraperPort):
             
             logger.info(f"추출 완료 - 텍스트: {text_length}자, 이미지: {image_count}개")
             
-            scarped_content = ScrapedContent(
+            # 5. ScrapedContent 생성
+            scraped_content = ScrapedContent(
                 text=result['text'],
                 image_urls=result['image_urls']
             )
 
-            summary_result = await summary_service.create_summary(scarped_content)
-
-            logger.info(f"요약 결과 - 성공 여부: {summary_result.is_successful}, 요약 길이: {len(summary_result.summary) if summary_result.summary else 0}자")
-
-            post.content_summary = summary_result.summary if summary_result.is_successful else scarped_content.text
-
-            return post
+            # 6. SummaryService를 사용하여 요약과 Location 정보 추출
+            processed_dto = await summary_service.create_summary_and_location(post, scraped_content)
+            
+            return processed_dto
             
         except Exception as e:
             logger.error(f"게시물 추출 중 오류 발생: {post.url} - {e}")
-            return post
+            return ProcessedPostDTO.create_with_post_only(post)
 
     async def _fetch_page_content(self, url: str) -> str:
         """

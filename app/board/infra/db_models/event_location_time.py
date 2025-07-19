@@ -18,3 +18,17 @@ class EventLocationTime(Base):
         nullable=False, 
         default=lambda: datetime.now(timezone.utc)
     )
+
+
+    def to_dict(self) -> dict:
+        """SQLAlchemy Model을 dict로 변환"""
+        return {
+            'id': self.id,
+            'post_id': self.post_id,
+            'location': self.location,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'created_at': self.created_at
+        }
