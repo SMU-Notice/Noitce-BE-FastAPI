@@ -43,16 +43,17 @@ class SummaryService:
             
             # 3. Location 정보 추출 (요약이 성공한 경우에만)
             location_entity = None
-            if summary_result.is_successful and summary_result.summary:
-                try:
-                    location_entity = await self.summary_adapter.extract_structured_location_info(summary_result.summary)
-                    if location_entity:
-                        location_entity.original_post_id = str(post.original_post_id)
-                        logger.info(f"위치 정보 추출 성공: {location_entity.location}")
-                    else:
-                        logger.info("위치 정보 추출 실패 또는 위치 정보 없음")
-                except Exception as e:
-                    logger.error(f"위치 정보 추출 중 오류 발생: {e}")
+
+            # if summary_result.is_successful and summary_result.summary:
+            #     try:
+            #         location_entity = await self.summary_adapter.extract_structured_location_info(summary_result.summary)
+            #         if location_entity:
+            #             location_entity.original_post_id = str(post.original_post_id)
+            #             logger.info(f"위치 정보 추출 성공: {location_entity.location}")
+            #         else:
+            #             logger.info("위치 정보 추출 실패 또는 위치 정보 없음")
+            #     except Exception as e:
+            #         logger.error(f"위치 정보 추출 중 오류 발생: {e}")
             
             # 4. ProcessedPostDTO 생성 및 반환
             return ProcessedPostDTO.create_complete(
