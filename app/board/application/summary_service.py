@@ -36,10 +36,11 @@ class SummaryService:
             # 2. Post 객체 업데이트
             if summary_result.is_successful:
                 post.content_summary = summary_result.summary
-                logger.info("Post 요약이 완료되었습니다.")
+                content_summary_log = post.content_summary[:10] + ("..." if len(post.content_summary) > 10 else "")
+                logger.info(f"Post 본문 요약이 완료되었습니다. content_summary: {content_summary_log}")
             else:
                 post.content_summary = content.text
-                logger.warning("Post 요약에 실패했습니다: %s", summary_result.error_message)
+                logger.warning("Post 본문 요약에 실패했습니다: %s", summary_result.error_message)
             
             # 3. Location 정보 추출 (요약이 성공한 경우에만)
             location_entity = None
