@@ -39,7 +39,7 @@ jobs:
       # 5. Docker 이미지 빌드
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/fast-app:test .
 
       # 6. DockerHub 로그인
       - name: Log in to DockerHub
@@ -51,7 +51,7 @@ jobs:
       # 7. Docker 이미지를 Docker Hub에 푸시
       - name: Push Docker image to DockerHub
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/fast-app:test
 
       # 8. EC2에 SSH 접속하여 Docker Compose로 배포
       - name: SSH to EC2 and deploy with Docker Compose
@@ -66,20 +66,20 @@ jobs:
             cd /home/ubuntu/docker/app
 
             # 8-2. fastapi-app 컨테이너 중지
-            echo "🛑 Stopping fastapi-app container"
-            docker-compose stop fastapi-app
+            echo "🛑 Stopping fast-app container"
+            docker-compose stop fast-app
 
-            # 8-3. fastapi-app 컨테이너 삭제
-            echo "🧹 Removing fastapi-app container"
-            docker-compose rm -f fastapi-app
+            # 8-3. fast-app 컨테이너 삭제
+            echo "🧹 Removing fast-app container"
+            docker-compose rm -f fast-app
 
             # 8-4. 최신 이미지 pull
-            echo "📥 Pulling latest fastapi-app image"
-            docker-compose pull fastapi-app
+            echo "📥 Pulling latest fast-app image"
+            docker-compose pull fast-app
 
             # 8-5. 새 컨테이너로 실행
             echo "🚀 Starting new fastapi-app container"
-            docker-compose up -d fastapi-app
+            docker-compose up -d fast-app
 
             # 8-6. 사용하지 않는 이미지/컨테이너 정리
             echo "🧼 Cleaning up unused Docker resources"
