@@ -1,13 +1,14 @@
-fastapi              # FastAPI 웹 프레임워크
-uvicorn              # ASGI 서버 (FastAPI 실행용)
-sqlalchemy           # SQLAlchemy ORM (ORM 사용 시)
-databases            # 비동기 DB 연결 라이브러리
-mysqlclient          # MySQL 클라이언트 (동기용)
-aiomysql             # 비동기 MySQL 클라이언트
-cryptography         # MySQL 인증 (sha256_password, caching_sha2_password) 등에 필요
-apscheduler          # 작업 스케줄링 (예: 주기적인 작업 실행)
-requests             # HTTP 요청 라이브러리 (동기)
-beautifulsoup4       # HTML 파싱 라이브러리 (크롤링 등)
-python-dotenv        # .env 파일로부터 환경변수 로딩
-aiohttp              # 비동기 HTTP 클라이언트/서버
-pydantic             # 데이터 검증 및 설정 관리 (FastAPI와 함께 사용)
+fastapi              # FastAPI web framework
+uvicorn              # ASGI server for running FastAPI
+sqlalchemy           # SQLAlchemy ORM for database operations
+databases            # Async database connection library
+mysqlclient          # MySQL client for synchronous operations
+aiomysql             # Async MySQL client
+cryptography         # Required for MySQL authentication (sha256_password, caching_sha2_password)
+apscheduler          # Task scheduling for periodic job execution
+requests             # HTTP request library (synchronous)
+beautifulsoup4       # HTML parsing library for web scraping
+python-dotenv        # Load environment variables from .env files
+aiohttp              # Async HTTP client/server library
+pydantic             # Data validation and settings management (used with FastAPI)
+dependency-injector  # Dependency injection container library

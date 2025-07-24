@@ -1,5 +1,5 @@
 # ✅ 1단계: 빌드용 이미지
-FROM python:3.9-slim AS builder
+FROM python:3.11-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 #------------#
 
 # ✅ 2단계: 실행용 경량 이미지
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 WORKDIR /code
 
