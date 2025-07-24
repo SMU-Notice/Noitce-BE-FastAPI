@@ -7,7 +7,7 @@ class ScraperConfig(BaseModel):
     base_url: str
     params: Dict[str, str | int]
     interval: int
-    campus: Literal["sangmyung", "seoul"]
+    campus: Literal["sang", "seoul"]
 
 # 스크래퍼 이름 기반 interval 환경변수 (기본값: 3600초 = 1시간)
 MAIN_BOARD_SANGMYUNG_INTERVAL = int(os.getenv("MAIN_BOARD_SANGMYUNG_INTERVAL", 3600))
@@ -24,7 +24,7 @@ SCRAPER_CONFIGS = {
             "article.offset": 0
         },
         interval=MAIN_BOARD_SANGMYUNG_INTERVAL,
-        campus="sangmyung"
+        campus="sang"
     ),
     "main_board_seoul": ScraperConfig(
         board_id=2,
