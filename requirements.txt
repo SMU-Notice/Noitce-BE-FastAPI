@@ -12,3 +12,4 @@ python-dotenv        # Load environment variables from .env files
 aiohttp              # Async HTTP client/server library
 pydantic             # Data validation and settings management (used with FastAPI)
 dependency-injector  # Dependency injection container library
+openai               # OpenAI API client for AI/ML services
