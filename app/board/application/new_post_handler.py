@@ -51,6 +51,7 @@ class NewPostHandler:
                 if self.enable_scraping and self.content_scraper:
                     processed_dto: ProcessedPostDTO = await self.content_scraper.extract_post_from_url(post)
                     logger.info("게시물 내용 추출 완료: %s", processed_dto.post.title)
+                    logger.debug("게시물 내용 추출 디버그 정보: %s", processed_dto.post.content_summary[:100] + "...")  # 요약의 일부만 로그에 남김
                     
                     # Post 객체 추가
                     processed_posts.append(processed_dto.post)
@@ -74,38 +75,91 @@ class NewPostHandler:
                 continue
 
         try:
-            # 1. Post 엔티티 저장
+            # 1. 신규 게시물 저장
+            saved_posts = await self._save_new_posts(processed_posts)
+            
+            # 2. Location 엔티티 처리
+            if location_entities:
+                await self._process_location_entities(location_entities, saved_posts)
+            
+            # 3. OCR 엔티티 처리
+            if ocr_entities:
+                await self._process_ocr_entities(ocr_entities, saved_posts)
+            
+            return saved_posts
+            
+        except Exception as e:
+            logger.error("NewPostHandler: 처리 실패: %s", e)
+            raise
+
+    async def _save_new_posts(self, processed_posts):
+        """신규 게시물만 저장하는 메서드 (내부 사용)"""
+        try:
             saved_posts = await self.post_repo.create_posts(processed_posts)
             logger.info("NewPostHandler: %d개 신규 게시물 저장 완료", len(saved_posts))
-
-            # 2. Location 엔티티 저장 (있는 경우에만)
-            if location_entities:
-                try:
-                    # saved_posts에서 post_id 매핑 생성
-                    post_id_mapping = {post.original_post_id: post.id for post in saved_posts}
-                    
-                    # Location 엔티티에 post_id 설정
-                    for location_entity in location_entities:
-                        if location_entity.original_post_id:
-                            post_id = post_id_mapping.get(int(location_entity.original_post_id))
-                            if post_id:
-                                location_entity.post_id = post_id
-                            else:
-                                logger.warning(f"original_post_id {location_entity.original_post_id}에 해당하는 post_id를 찾을 수 없음")
-                        else:
-                            logger.warning("Location 엔티티에 original_post_id가 설정되지 않음")
-                    
-                    # Location 엔티티 저장
-                    saved_locations = await self.location_repo.create_event_location_times(location_entities)
-                    logger.info("NewPostHandler: %d개 위치 정보 저장 완료", len(saved_locations))
-                except Exception as e:
-                    logger.error("위치 정보 저장 중 오류 발생: %s", e)
-
-            # 3. OCR 엔티티 저장 (현재는 구현되지 않음)
-            if ocr_entities:
-                logger.info("OCR 엔티티 저장 로직은 아직 구현되지 않음")
-
             return saved_posts
         except SQLAlchemyError as e:
-            logger.error("NewPostHandler: 저장 실패: %s", e)
+            logger.error("NewPostHandler: 게시물 저장 실패: %s", e)
             raise
+
+    # async def _process_location_entities(self, location_entities, saved_posts):
+    #     """Location 엔티티를 처리하는 메서드 (내부 사용)"""
+    #     if not location_entities:
+    #         logger.info("처리할 Location 엔티티가 없음")
+    #         return []
+        
+    #     try:
+    #         # saved_posts에서 post_id 매핑 생성
+    #         post_id_mapping = {post.original_post_id: post.id for post in saved_posts}
+            
+    #         # Location 엔티티에 post_id 설정
+    #         for location_entity in location_entities:
+    #             if location_entity.original_post_id:
+    #                 post_id = post_id_mapping.get(int(location_entity.original_post_id))
+    #                 if post_id:
+    #                     location_entity.post_id = post_id
+    #                 else:
+    #                     logger.warning(f"original_post_id {location_entity.original_post_id}에 해당하는 post_id를 찾을 수 없음")
+    #             else:
+    #                 logger.warning("Location 엔티티에 original_post_id가 설정되지 않음")
+            
+    #         # Location 엔티티 저장
+    #         saved_locations = await self.location_repo.create_event_location_times(location_entities)
+    #         logger.info("NewPostHandler: %d개 위치 정보 저장 완료", len(saved_locations))
+    #         return saved_locations
+            
+    #     except Exception as e:
+    #         logger.error("위치 정보 저장 중 오류 발생: %s", e)
+    #         raise
+
+    # async def _process_ocr_entities(self, ocr_entities, saved_posts):
+    #     """OCR 엔티티를 처리하는 메서드 (내부 사용)"""
+    #     if not ocr_entities:
+    #         logger.info("처리할 OCR 엔티티가 없음")
+    #         return []
+        
+    #     try:
+    #         # saved_posts에서 post_id 매핑 생성
+    #         post_id_mapping = {post.original_post_id: post.id for post in saved_posts}
+            
+    #         # OCR 엔티티에 post_id 설정
+    #         for ocr_entity in ocr_entities:
+    #             if ocr_entity.original_post_id:
+    #                 post_id = post_id_mapping.get(int(ocr_entity.original_post_id))
+    #                 if post_id:
+    #                     ocr_entity.post_id = post_id
+    #                 else:
+    #                     logger.warning(f"original_post_id {ocr_entity.original_post_id}에 해당하는 post_id를 찾을 수 없음")
+    #             else:
+    #                 logger.warning("OCR 엔티티에 original_post_id가 설정되지 않음")
+            
+    #         # OCR 엔티티 저장 (구현 필요)
+    #         # saved_ocr = await self.ocr_repo.create_ocr_results(ocr_entities)
+    #         # logger.info("NewPostHandler: %d개 OCR 결과 저장 완료", len(saved_ocr))
+            
+    #         logger.info("OCR 엔티티 저장 로직은 아직 구현되지 않음")
+    #         return []
+            
+    #     except Exception as e:
+    #         logger.error("OCR 처리 중 오류 발생: %s", e)
+    #         raise
