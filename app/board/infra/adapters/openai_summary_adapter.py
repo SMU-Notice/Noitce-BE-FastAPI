@@ -83,21 +83,24 @@ class OpenAISummaryAdapter(SummaryPort):
         try:
             messages = [
                 {
-                    "role": "system", 
-                    "content": "당신은 공지사항을 간결하고 핵심적으로 요약하는 전문가입니다."
-                },
-                {
                     "role": "user", 
-                    "content": f"""다음 공지 내용을 핵심만 간결하게 요약해줘.
-                    중요 일정, 수강신청 방법, 시스템 사용 방법, 유의사항을 항목 위주로 정리하고,
-                    날짜와 시각이 포함된 내용은 최대한 명확하게 '날짜 + 시각'이 구조적으로 드러나도록 정리해줘.
-                    문장은 짧고 단순하게 유지해줘.
+                    "content": f"""다음 학교 공지사항을 정리해주세요.
 
-                    공지 내용:
-                    {content_str}"""
+                    **정리 방식:**
+                    - 핵심 정보만 추출하여 항목별로 정리
+                    - 각 항목은 줄바꿈으로 구분
+                    - 있는 정보만 정리 (없는 정보는 생략)
+
+                    **항목 예시:**
+                    일정: (있을 때만)
+                    장소: (있을 때만)
+                    신청방법: (있을 때만)
+                    주의사항: (있을 때만)
+
+                    공지 내용: {content_str}"""
                 }
             ]
-            
+                    
             response = await self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
@@ -129,19 +132,26 @@ class OpenAISummaryAdapter(SummaryPort):
         try:
             messages = [
                 {
-                    "role": "system",
-                    "content": "너는 공지문에서 날짜, 시각, 장소 정보를 구조화해서 JSON으로 추출하는 정보 정리 전문가야. 요청 형식과 요구사항을 엄격히 따라야 해."
-                },
-                {
-                    "role": "user",
-                    "content": f"""다음 요약된 공지 내용에서 아래 항목들을 찾아 JSON 형식으로 추출해줘.
+                "role": "system",
+                "content": "너는 공지문에서 날짜, 시각, 장소 정보를 구조화해서 JSON으로 추출하는 정보 정리 전문가야. 요청 형식과 요구사항을 엄격히 따라야 해."
+            },
+            {
+                "role": "user",
+                "content": f"""다음 요약된 공지 내용에서 아래 항목들을 찾아 JSON 형식으로 추출해줘.
             각 항목이 없으면 "없음"이라고 표기해줘.
 
-            - 장소 (구체적인 물리적 장소만, 예: 상명대학교 제1공학관 / A동 101호 등. 홈페이지나 URL은 제외)
+            - 장소 (상명대학교 내부의 구체적인 물리적 장소만 해당. 예: 상명대학교 제1공학관, A동 101호, 중앙도서관, 학생회관 등)
             - 시작 날짜 (YYYY-MM-DD 형식)
             - 종료 날짜 (YYYY-MM-DD 형식)  
             - 시작 시각 (HH:MM 또는 HH시MM분 형식)
             - 종료 시각 (HH:MM 또는 HH시MM분 형식)
+
+            **장소 판별 기준:**
+            - 포함: 상명대학교 캠퍼스 내 건물명, 강의실, 실습실, 도서관, 학생회관, 체육관 등
+            - 제외: 
+            * 온라인, 인터넷, 홈페이지, 웹사이트, 시스템, URL 등 비물리적 공간
+            * 상명대학교가 아닌 외부 장소 (다른 대학교, 회사, 기관, 카페, 식당 등)
+            * 일반적인 지역명 (서울, 강남, 종로 등)
 
             다음과 같은 JSON 형식으로 응답해줘:
 
@@ -155,7 +165,7 @@ class OpenAISummaryAdapter(SummaryPort):
 
             공지 요약 내용:
             {summary_content}"""
-                }
+            }
             ]
             
             response = await self.client.chat.completions.create(

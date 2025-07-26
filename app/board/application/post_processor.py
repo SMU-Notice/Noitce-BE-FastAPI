@@ -56,10 +56,7 @@ class PostProcessor:
             # 외부 알림용 DTO 변환 (저장 성공 후)
             if saved_posts:
                 new_post_notification = self._convert_to_notification_dto(saved_posts)
-                if new_post_notification:
-                    logger.info("외부 알림용 DTO 생성 완료")
-                else:
-                    logger.warning("외부 알림용 DTO 생성 실패")
+                logger.info("외부 알림용 DTO 생성 완료")
         
         logger.info("PostProcessor: 게시물 처리 완료")
         

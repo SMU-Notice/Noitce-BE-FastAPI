@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 class WebPostContentScraper(PostContentScraperPort):
+    def __init__(self, ocr_service=None):
+        self.ocr_service = ocr_service
+
     async def extract_post_from_url(self, post: Post) -> ProcessedPostDTO:
         """
         URL에서 게시물 내용을 추출하는 메서드
@@ -67,6 +70,18 @@ class WebPostContentScraper(PostContentScraperPort):
 
             # 6. SummaryService를 사용하여 요약과 Location 정보 추출
             processed_dto = await summary_service.create_summary_and_location(post, scraped_content)
+
+            # # 1. 본문 요약
+            # summary = await summary_service.create_summary(scraped_content.original_text)
+
+            # # 2. 장소/시간 정보 추출 (요약문 기반)
+            # location_info = await summary_service.extract_location_info(summary)
+
+            # # 3. OCR 텍스트 요약 (별도)
+            # ocr_summary = await summary_service.create_ocr_summary(scraped_content.ocr_text)
+            
+
+            await self._process_ocr_if_needed(scraped_content)
             
             return processed_dto
             
@@ -188,6 +203,27 @@ class WebPostContentScraper(PostContentScraperPort):
             'text': text_content,
             'image_urls': image_urls
         }
+    
+    async def _process_ocr_if_needed(self, scraped_content: ScrapedContent):
+        """
+        필요시 OCR 처리를 수행하고 ScrapedContent를 업데이트하는 내부 메서드
+        
+        Args:
+            scraped_content: 업데이트할 ScrapedContent 객체
+        """
+        if scraped_content.image_urls and self.ocr_service:
+            logger.info(f"OCR 처리 시작 - 첫 번째 이미지만 처리 (총 {len(scraped_content.image_urls)}개 중)")
+            first_image_url = scraped_content.image_urls[0]
+            
+            try:
+                ocr_result = await self.ocr_service.extract_text_from_image(first_image_url)
+                # OCR 텍스트를 기존 텍스트에 추가
+                if ocr_result:
+                    combined_text = scraped_content.text + "\n\n[OCR 추출 텍스트]\n" + ocr_result
+                    scraped_content.text = combined_text
+                    logger.info(f"OCR 처리 완료 - 추출된 텍스트 길이: {len(ocr_result)}자")
+            except Exception as e:
+                logger.error(f"OCR 처리 중 오류 발생: {e}")
 
 
 # 사용 예시

@@ -8,6 +8,9 @@ from app.board.domain.post import Post as PostVO
 from app.board.infra.db_models.post import Post
 from app.board.domain.repository.post_repo import IPostRepository
 from app.database.db import get_db
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PostRepository(IPostRepository):
@@ -15,13 +18,13 @@ class PostRepository(IPostRepository):
     async def create_posts(self, posts: List[PostVO]) -> List[PostVO]:
         """
         여러 개의 게시글을 배치로 저장하고 저장된 데이터를 반환합니다.
-        
+
         Args:
             posts (List[PostVO]): 저장할 게시글 도메인 객체 리스트
-            
+
         Returns:
             List[PostVO]: 저장된 게시글 객체 리스트 (DB에서 생성된 ID 등 포함)
-            
+
         Raises:
             SQLAlchemyError: 데이터베이스 저장 중 오류 발생 시
         """
@@ -29,24 +32,34 @@ class PostRepository(IPostRepository):
             try:
                 # 배치 변환 (빠른 리스트 컴프리헨션)
                 post_models = self._convert_to_models_batch(posts)
-                
+
                 # 배치 추가
                 db.add_all(post_models)
-                
+
                 # flush()로 DB에 반영하되 트랜잭션은 유지 (ID 등 자동생성 값 획득)
                 await db.flush()
-                
+
+                logger.debug("Flush 후 저장된 게시물 ID: %s", [post.id for post in post_models])
+                logger.debug("Flush 후 저장된 게시물 요약: %s", [post.content_summary for post in post_models])
+
                 # 저장된 모델들을 배치로 VO 변환
                 saved_post_vos = self._convert_to_domains_batch(post_models)
-                
+
+                logger.debug("VO 변환 후 게시물 ID: %s", [vo.id for vo in saved_post_vos])
+                logger.debug("VO 변환 후 게시물 요약: %s", [vo.content_summary for vo in saved_post_vos])
+
                 # 최종 커밋
                 await db.commit()
-                
+
+                logger.debug("Commit 완료")
+
                 return saved_post_vos
-                
+
             except SQLAlchemyError as e:
                 await db.rollback()
+                logger.error("DB 저장 중 오류 발생: %s", e)
                 raise e
+
 
     async def read_posts_desc_by_id(self, board_id: int, record_count: int) -> List[PostVO]:
         """
