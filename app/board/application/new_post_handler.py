@@ -2,7 +2,7 @@ import logging
 from typing import List
 from sqlalchemy.exc import SQLAlchemyError
 from app.board.infra.repository.post_repo import PostRepository
-from app.board.domain.post import Post as PostVO
+from app.board.domain.post import Post
 from app.board.application.ports.post_content_scraping_port import PostContentScraperPort
 from app.board.infra.scraper.posts.web_post_content_scraper import WebPostContentScraper
 from app.board.application.dto.processed_post_dto import ProcessedPostDTO
@@ -23,7 +23,7 @@ class NewPostHandler:
         self.content_scraper = content_scraper or (WebPostContentScraper() if self.enable_scraping else None)
         self.location_repo = location_repo or EventLocationTimeRepository()
     
-    async def handle_new_posts(self, new_posts: List[PostVO]) -> List[PostVO]:
+    async def handle_new_posts(self, new_posts: List[Post]) -> List[Post]:
         """
         새로운 게시물들을 처리 (저장) 후 저장된 데이터 반환
         
@@ -33,7 +33,7 @@ class NewPostHandler:
         Returns:
         - List[PostVO]: 저장된 게시물 객체 목록 (ID 등 DB에서 생성된 값 포함)
         """
-        processed_posts = []
+        processed_new_posts = []
         location_entities = []
         ocr_entities = []
 
@@ -51,10 +51,11 @@ class NewPostHandler:
                 if self.enable_scraping and self.content_scraper:
                     processed_dto: ProcessedPostDTO = await self.content_scraper.extract_post_from_url(post)
                     logger.info("게시물 내용 추출 완료: %s", processed_dto.post.title)
-                    logger.debug("게시물 내용 추출 디버그 정보: %s", processed_dto.post.content_summary[:100] + "...")  # 요약의 일부만 로그에 남김
+                    logger.info("게시물 내용 추출 디버그 정보: %s", processed_dto.post.content_summary[:10] + "...")  # 요약의 일부만 로그에 남김
+                    logger.debug("게시물 내용 추출 세부 정보: %s", processed_dto.post.content_summary[:100] + "...")  # 요약의 일부만 로그에 남김
                     
                     # Post 객체 추가
-                    processed_posts.append(processed_dto.post)
+                    processed_new_posts.append(processed_dto.post)
                     
                     # Location 엔티티가 있으면 추가
                     if processed_dto.has_location():
@@ -67,7 +68,7 @@ class NewPostHandler:
                         logger.info("OCR 정보 추가")
                 else:
                     # 그냥 받은 post 그대로 저장
-                    processed_posts.append(post)
+                    processed_new_posts.append(post)
                     logger.info("게시물 내용 추출 완료 (스크래핑 비활성화): %s", post.title)
             
             except Exception as e:
@@ -76,27 +77,41 @@ class NewPostHandler:
 
         try:
             # 1. 신규 게시물 저장
-            saved_posts = await self._save_new_posts(processed_posts)
-            
-            # 2. Location 엔티티 처리
-            if location_entities:
-                await self._process_location_entities(location_entities, saved_posts)
-            
-            # 3. OCR 엔티티 처리
-            if ocr_entities:
-                await self._process_ocr_entities(ocr_entities, saved_posts)
-            
+            try:
+                saved_posts = await self._save_new_posts(processed_new_posts)
+            except Exception as e:
+                logger.error("NewPostHandler: 게시물 저장 실패: %s", e)
+                raise
+
+            # # 2. Location 엔티티 처리
+            # if location_entities:
+            #     try:
+            #         await self._process_location_entities(location_entities, saved_posts)
+            #     except Exception as e:
+            #         logger.error("NewPostHandler: Location 엔티티 처리 실패: %s", e)
+            #         raise
+
+            # # 3. OCR 엔티티 처리
+            # if ocr_entities:
+            #     try:
+            #         await self._process_ocr_entities(ocr_entities, saved_posts)
+            #     except Exception as e:
+            #         logger.error("NewPostHandler: OCR 엔티티 처리 실패: %s", e)
+            #         raise
+
             return saved_posts
-            
+
         except Exception as e:
             logger.error("NewPostHandler: 처리 실패: %s", e)
             raise
 
-    async def _save_new_posts(self, processed_posts):
+    async def _save_new_posts(self, posts: List[Post]) -> List[Post]:
         """신규 게시물만 저장하는 메서드 (내부 사용)"""
         try:
-            saved_posts = await self.post_repo.create_posts(processed_posts)
+            saved_posts = await self.post_repo.create_posts(posts)
             logger.info("NewPostHandler: %d개 신규 게시물 저장 완료", len(saved_posts))
+            logger.debug("저장된 게시물 ID 목록: %s", [post.id for post in saved_posts])
+            logger.debug("저장된 게시물 요약 본문 목록: %s", [post.content_summary[:30] for post in saved_posts])
             return saved_posts
         except SQLAlchemyError as e:
             logger.error("NewPostHandler: 게시물 저장 실패: %s", e)
