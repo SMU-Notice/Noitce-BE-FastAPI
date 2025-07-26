@@ -53,3 +53,12 @@ class IPostRepository(ABC):
             posts: 업데이트할 게시글 객체 리스트 (id 포함)
         """
         pass
+
+    @abstractmethod
+    async def update_view_counts_only(self, posts: List[Post]) -> None:
+        """게시글의 조회수만 배치로 업데이트합니다.
+        
+        Args:
+            posts: 업데이트할 게시글 객체 리스트 (id와 view_count만 사용)
+        """
+        pass

@@ -308,6 +308,55 @@ class PostRepository(IPostRepository):
             except SQLAlchemyError as e:
                 await db.rollback()
                 raise e
+            
+    async def update_view_counts_only(self, posts: List[PostVO]) -> None:
+        """
+        게시글의 조회수만 배치로 업데이트합니다.
+        
+        Args:
+            posts (List[PostVO]): 업데이트할 게시글 객체 리스트 (id와 view_count만 사용)
+            
+        Raises:
+            SQLAlchemyError: 데이터베이스 업데이트 중 오류 발생 시
+        """
+        if not posts:
+            return
+            
+        async for db in get_db():
+            try:
+                current_time = datetime.now()
+                
+                # 조회수만 업데이트하는 배치 쿼리
+                post_ids = [post.id for post in posts]
+                view_count_cases = []
+                params = {}
+                
+                for i, post in enumerate(posts):
+                    view_count_cases.append(f"WHEN id = :id_{i} THEN :view_count_{i}")
+                    params.update({
+                        f'id_{i}': post.id,
+                        f'view_count_{i}': post.view_count,
+                    })
+                
+                # 조회수와 scraped_at만 업데이트하는 쿼리
+                batch_update_query = text(f"""
+                    UPDATE post SET
+                        view_count = CASE {' '.join(view_count_cases)} END,
+                        scraped_at = :scraped_at
+                    WHERE id IN ({','.join([f':id_{i}' for i in range(len(posts))])})
+                """)
+                
+                params['scraped_at'] = current_time
+                
+                await db.execute(batch_update_query, params)
+                await db.commit()
+                
+                logger.info("조회수 배치 업데이트 완료: %d개 게시글", len(posts))
+                
+            except SQLAlchemyError as e:
+                await db.rollback()
+                logger.error("조회수 업데이트 중 오류 발생: %s", e)
+                raise e
 
     def _convert_to_models_batch(self, post_vos: List[PostVO]) -> List[Post]:
         """
