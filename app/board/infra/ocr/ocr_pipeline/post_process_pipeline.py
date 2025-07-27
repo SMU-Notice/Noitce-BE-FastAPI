@@ -67,7 +67,7 @@ def post_process_pipeline(
         try:
             result = post_process_section_by_type(section["blocks"], section["type"], section_classification_config, post_process_config)
 
-            # ✅ 후처리 결과 문자열화
+            # 후처리 결과 문자열화
             if section["type"] == "table":
                 # 테이블: 행 단위 줄바꿈 + 열은 탭 또는 파이프(|)로 구분
                 stringified = "\n".join(["\t".join(row) for row in result])

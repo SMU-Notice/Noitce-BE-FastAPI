@@ -1,5 +1,5 @@
 from typing import List, Dict
-from app.board.infra.ocr.ocr_pipeline.classifier.table import group_rows_by_y
+from app.board.infra.ocr.ocr_pipeline.classifier.table.group_rows_by_y import group_rows_by_y
 from .align_blocks_to_columns import align_blocks_to_columns
 import logging
 

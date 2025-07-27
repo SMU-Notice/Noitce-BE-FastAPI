@@ -11,7 +11,7 @@ def complex_column_post_process(
     post_process_config: Dict[str, Dict]
 ) -> List[str]:
     
-    from ocr_pipeline.post_process.post_process_section_by_type import post_process_section_by_type
+    from ..post_process_section_by_type import post_process_section_by_type
 
     """
     복잡한 컬럼 섹션을 1-depth로 컬럼 단위로 나눠서 처리.
