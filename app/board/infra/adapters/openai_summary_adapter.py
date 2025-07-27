@@ -5,39 +5,11 @@ import json
 from dotenv import load_dotenv
 from app.board.application.ports.summary_port import SummaryPort
 import logging
-from app.board.application.dto.scraped_content import ScrapedContent
 from app.board.domain.event_location_time import EventLocationTime
-from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
-
-
-class SummarizedScrapedContent(BaseModel):
-    """요약된 스크래핑 컨텐츠를 위한 Pydantic 모델"""
-    original_content: str = Field(description="원본 스크래핑 내용")
-    summary: str = Field(description="요약된 내용")
-    is_successful: bool = Field(default=True, description="요약 성공 여부")
-    error_message: Optional[str] = Field(default=None, description="요약 실패 시 오류 메시지")
-    
-    @classmethod
-    def success(cls, original_content: str, summary: str) -> 'SummarizedScrapedContent':
-        """성공적인 요약 결과 생성"""
-        return cls(
-            original_content=original_content,
-            summary=summary,
-            is_successful=True
-        )
-    
-    @classmethod
-    def failure(cls, original_content: str, error_message: str) -> 'SummarizedScrapedContent':
-        """실패한 요약 결과 생성"""
-        return cls(
-            original_content=original_content,
-            summary=f"요약 생성에 실패했습니다. 원본 텍스트: {original_content[:100]}...",
-            is_successful=False,
-            error_message=error_message
-        )
-
+from app.board.domain.post import Post
+from app.board.domain.post_picture import PostPicture
 
 
 # 로거 설정
@@ -60,25 +32,21 @@ class OpenAISummaryAdapter(SummaryPort):
             project=self.project
         )
     
-    async def summarize_post_content(self, content: ScrapedContent) -> SummarizedScrapedContent:
+    async def summarize_post_content(self, post: Post) -> Post:
         """1차 필터: 게시물 본문을 간결하게 요약합니다."""
-        content_str = str(content.text)  # ScrapedContent를 문자열로 변환
+        content_str = post.original_content or ""
         
         # 0자면 내용이 없다고 반환
         if not content_str or len(content_str.strip()) == 0:
             logger.warning("요약할 내용이 없습니다.")
-            return SummarizedScrapedContent.success(
-                original_content=content_str,
-                summary="내용 없음"
-            )
+            post.content_summary = "내용 없음"
+            return post
         
         # 50자 이하면 그대로 반환 (요약할 필요 없음)
         if len(content_str.strip()) <= 50:
             logger.info("내용이 짧아서 그대로 반환합니다. 길이: %d자", len(content_str.strip()))
-            return SummarizedScrapedContent.success(
-                original_content=content_str,
-                summary=content_str.strip()
-            )
+            post.content_summary = content_str.strip()
+            return post
         
         try:
             messages = [
@@ -109,20 +77,17 @@ class OpenAISummaryAdapter(SummaryPort):
             )
             
             summary = response.choices[0].message.content.strip()
+            post.content_summary = summary
             
-            return SummarizedScrapedContent.success(
-                original_content=content_str,
-                summary=summary
-            )
+            return post
             
         except Exception as e:
             error_msg = f"OpenAI API 요약 생성 중 오류 발생: {e}"
             logger.error(error_msg)
             
-            return SummarizedScrapedContent.failure(
-                original_content=content_str,
-                error_message=error_msg
-            )
+            post.content_summary = "실패"
+            return post
+    
     
     async def extract_structured_location_info(self, summary_content: str) -> Optional[EventLocationTime]:
         """2차 필터: 요약된 내용에서 날짜, 시간, 장소 정보를 추출하여 EventLocationTime 객체로 반환"""
@@ -253,3 +218,65 @@ class OpenAISummaryAdapter(SummaryPort):
         except Exception as e:
             logger.error(f"구조화된 정보 추출 중 오류 발생: {e}")
             return None
+        
+    async def summarize_ocr_content(self, post_picture: PostPicture) -> PostPicture:
+        """OCR로 추출된 텍스트를 요약하여 PostPicture 객체를 업데이트합니다."""
+        
+        # OCR 텍스트 추출 (picture_summary에 OCR 원본이 들어있다고 가정)
+        ocr_text = post_picture.picture_summary
+        
+        # 내용이 없으면 그대로 반환
+        if not ocr_text or len(ocr_text.strip()) == 0:
+            logger.warning("OCR 텍스트가 없습니다.")
+            post_picture.picture_summary = "내용 없음"
+            return post_picture
+        
+        # 50자 이하면 그대로 반환
+        if len(ocr_text.strip()) <= 30:
+            logger.info("OCR 텍스트가 짧아서 그대로 반환합니다. 길이: %d자", len(ocr_text.strip()))
+            return post_picture
+        
+        try:
+            messages = [
+                {
+                    "role": "user", 
+                    "content": f"""다음 이미지에서 추출된 텍스트를 정리해주세요.
+    각 섹션은 '---'로 구분되어 있습니다.
+
+                    **정리 방식:**
+                    - 핵심 정보만 추출하여 항목별로 정리
+                    - 각 항목은 줄바꿈으로 구분
+                    - 있는 정보만 정리 (없는 정보는 생략)
+                    - 섹션별 내용을 통합하여 정리
+
+                    **항목 예시:**
+                    일정: (있을 때만)
+                    장소: (있을 때만)
+                    신청방법: (있을 때만)
+                    주의사항: (있을 때만)
+                    기타 정보: (있을 때만)
+
+                    추출된 텍스트: {ocr_text}"""
+                }
+            ]
+                    
+            response = await self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                max_tokens=300,
+                temperature=0.3
+            )
+            
+            summary = response.choices[0].message.content.strip()
+            post_picture.picture_summary = summary
+            
+            return post_picture
+            
+        except Exception as e:
+            error_msg = f"OCR 텍스트 요약 중 오류 발생: {e}"
+            logger.error(error_msg)
+            
+            # 오류 발생 시 "실패"로 마킹 - 이후 저장하지 않음
+            post_picture.picture_summary = "실패"
+            
+            return post_picture

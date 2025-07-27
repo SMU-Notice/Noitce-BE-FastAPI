@@ -368,21 +368,7 @@ class PostRepository(IPostRepository):
         Returns:
             List[Post]: SQLAlchemy 모델 객체 리스트
         """
-        return [
-            Post(
-                id=vo.id,
-                board_id=vo.board_id,
-                original_post_id=vo.original_post_id,
-                type_=vo.post_type,
-                title=vo.title,
-                content_summary=vo.content_summary,
-                view_count=vo.view_count,
-                url=vo.url,
-                has_reference=vo.has_reference,
-                posted_date=vo.posted_date,
-                scraped_at=datetime.now() 
-            ) for vo in post_vos
-        ]
+        return [Post(**vo.to_dict()) for vo in post_vos]
 
     def _convert_to_domains_batch(self, post_models: List[Post]) -> List[PostVO]:
         """
@@ -394,19 +380,4 @@ class PostRepository(IPostRepository):
         Returns:
             List[PostVO]: 게시글 도메인 객체 리스트
         """
-        return [
-            PostVO(
-                id=m.id,
-                board_id=m.board_id,
-                original_post_id=m.original_post_id,
-                post_type=m.type_,
-                title=m.title,
-                content_summary=m.content_summary,
-                view_count=m.view_count,
-                url=m.url,
-                has_reference=m.has_reference,
-                posted_date=m.posted_date,
-            ) for m in post_models
-        ]
-    
-    
+        return [PostVO.from_dict(m.__dict__) for m in post_models]

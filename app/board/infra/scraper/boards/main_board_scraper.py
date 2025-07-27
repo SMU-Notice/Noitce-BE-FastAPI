@@ -2,7 +2,7 @@ import logging
 import aiohttp
 from bs4 import BeautifulSoup
 import re
-from app.board.infra.scraper.board_scraper_base import BoardScraper
+from app.board.infra.scraper.boards.board_scraper_base import BoardScraper
 from app.config.scraper_config import get_scraper_config
 from app.board.infra.scraper.models.scraped_post import ScrapedPost
 
