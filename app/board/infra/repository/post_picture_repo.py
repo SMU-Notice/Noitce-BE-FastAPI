@@ -93,10 +93,15 @@ class PostPictureRepository(IPostPictureRepository):
                 # Pydantic Schema를 통한 자동 변환
                 saved_pictures = []
                 for i, model in enumerate(picture_models):
-                    schema_data = PostPictureSchema.from_orm(model).dict()
-                    schema_data['original_post_id'] = pictures[i].original_post_id  # 원본 데이터 추가
-                    schema_data['original_ocr_text'] = pictures[i].original_ocr_text
-                    saved_pictures.append(PostPicture.from_dict(schema_data))
+                    saved_pictures.append(PostPicture.from_dict({
+                        'id': model.__dict__.get('id'),
+                        'post_id': model.__dict__.get('post_id'),
+                        'url': model.__dict__.get('url', ''),
+                        'picture_summary': model.__dict__.get('picture_summary', ''),
+                        'created_at': model.__dict__.get('created_at'),
+                        'original_post_id': pictures[i].original_post_id,
+                        'original_ocr_text': pictures[i].original_ocr_text
+                    }))
                 
                 # 최종 커밋
                 await db.commit()

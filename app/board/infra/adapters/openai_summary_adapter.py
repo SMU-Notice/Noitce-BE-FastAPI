@@ -34,11 +34,11 @@ class OpenAISummaryAdapter(SummaryPort):
     
     async def summarize_post_content(self, post: Post) -> Post:
         """1차 필터: 게시물 본문을 간결하게 요약합니다."""
-        content_str = post.original_content or ""
+        content_str = post.original_content
         
         # 0자면 내용이 없다고 반환
         if not content_str or len(content_str.strip()) == 0:
-            logger.warning("요약할 내용이 없습니다.")
+            logger.warning("게시물 본문 요약할 내용이 없습니다.")
             post.content_summary = "내용 없음"
             return post
         
@@ -223,7 +223,7 @@ class OpenAISummaryAdapter(SummaryPort):
         """OCR로 추출된 텍스트를 요약하여 PostPicture 객체를 업데이트합니다."""
         
         # OCR 텍스트 추출 (picture_summary에 OCR 원본이 들어있다고 가정)
-        ocr_text = post_picture.picture_summary
+        ocr_text = post_picture.original_ocr_text
         
         # 내용이 없으면 그대로 반환
         if not ocr_text or len(ocr_text.strip()) == 0:
