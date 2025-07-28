@@ -2,23 +2,28 @@ from bs4 import BeautifulSoup
 import re
 import aiohttp
 import logging
+import os
 from urllib.parse import urljoin
 from app.board.application.ports.post_content_scraping_port import PostContentScraperPort
 from app.board.application.dto.scraped_content import ScrapedContent
-from app.board.application.dto.processed_post_dto import ProcessedPostDTO
+from app.board.application.dto.summary_processed_post_dto import SummaryProcessedPostDTO
 import app.board.domain.post as Post
+from app.board.domain.post_picture import PostPicture
 from app.board.application.summary_service import SummaryService
-
+from app.board.infra.ocr.ocr_main import OCRPipeline
+import os
 
 # 로거 설정
 logger = logging.getLogger(__name__)
 
+# 클래스 밖에서 환경 변수 로드
+ENABLE_SUMMARY = os.getenv("ENABLE_SUMMARY", "false").lower() == "true"
 
 class WebPostContentScraper(PostContentScraperPort):
-    def __init__(self, ocr_service=None):
-        self.ocr_service = ocr_service
+    def __init__(self, ocr_pipeline=None):
+        self.ocr_pipeline = ocr_pipeline or OCRPipeline()  # OCRPipeline 인스턴스 초기화
 
-    async def extract_post_from_url(self, post: Post) -> ProcessedPostDTO:
+    async def extract_post_from_url(self, post: Post) -> SummaryProcessedPostDTO:
         """
         URL에서 게시물 내용을 추출하는 메서드
         
@@ -38,7 +43,7 @@ class WebPostContentScraper(PostContentScraperPort):
             html_content = await self._fetch_page_content(post.url)
             if not html_content:
                 logger.warning(f"HTML 가져오기 실패: {post.url}")
-                return ProcessedPostDTO.create_with_post_only(post)
+                return SummaryProcessedPostDTO.create_with_post_only(post)
             
             logger.debug(f"HTML 가져오기 성공 - 크기: {len(html_content)} bytes")
             
@@ -50,7 +55,7 @@ class WebPostContentScraper(PostContentScraperPort):
             post_content = self._find_post_content(soup)
             if not post_content:
                 logger.warning(f"게시물 본문을 찾을 수 없음: {post.url}")
-                return ProcessedPostDTO.create_with_post_only(post)
+                return SummaryProcessedPostDTO.create_with_post_only(post)
             
             logger.debug("게시물 본문 영역 찾기 완료")
             
@@ -62,32 +67,62 @@ class WebPostContentScraper(PostContentScraperPort):
             
             logger.info(f"추출 완료 - 텍스트: {text_length}자, 이미지: {image_count}개")
             
-            # 5. ScrapedContent 생성
-            scraped_content = ScrapedContent(
-                text=result['text'],
-                image_urls=result['image_urls']
-            )
+            # Post에 원본 텍스트 추가
+            post.original_content = result['text']
 
-            # 6. SummaryService를 사용하여 요약과 Location 정보 추출
-            processed_dto = await summary_service.create_summary_and_location(post, scraped_content)
+            # 첫 번째 이미지 URL로 PostPicture 엔티티 생성 (있을 때만)
+            post_picture = None
+            if result['image_urls'] and len(result['image_urls']) > 0:
+                first_image_url = result['image_urls'][0]
+                post_picture = PostPicture(
+                    url=first_image_url,
+                    original_post_id=post.original_post_id,
+                )
 
-            # # 1. 본문 요약
-            # summary = await summary_service.create_summary(scraped_content.original_text)
 
-            # # 2. 장소/시간 정보 추출 (요약문 기반)
-            # location_info = await summary_service.extract_location_info(summary)
+            summary_processed_dto: SummaryProcessedPostDTO  = None
 
-            # # 3. OCR 텍스트 요약 (별도)
-            # ocr_summary = await summary_service.create_ocr_summary(scraped_content.ocr_text)
-            
+            # OCR 처리 (post_picture가 있을 때만)
+            if post_picture:
+                await self._process_ocr_if_needed(post_picture)
 
-            await self._process_ocr_if_needed(scraped_content)
+            # SummaryProcessedPostDTO 생성
+            if post_picture and post_picture.picture_summary != "실패":
+                logger.info(f"이미지가 있는 게시물 DTO 생성 - 이미지 URL: {post_picture.url}")
+                summary_processed_dto = SummaryProcessedPostDTO(
+                    post=post,
+                    post_picture=post_picture
+                )
+            else:
+                if post_picture and post_picture.picture_summary == "실패":
+                    logger.warning("OCR 처리 실패로 이미지 제외하고 DTO 생성")
+                else:
+                    logger.info("텍스트만 있는 게시물 DTO 생성")
+                
+                summary_processed_dto = SummaryProcessedPostDTO(
+                    post=post
+                )
+
+            logger.info(f"SummaryProcessedPostDTO 생성 완료 - 게시물 ID: {post.id}, 제목: {post.title[:50]}...")
+
+
+
+            if ENABLE_SUMMARY:
+                logging.info("ENABLE_SUMMARY=True - 요약 처리를 시작합니다")
+                processed_dto = await summary_service.create_summary_processed_post(summary_processed_dto)
+                logging.info("요약 처리가 완료되었습니다")
+            else:
+                logging.info("ENABLE_SUMMARY=False - 요약 처리를 건너뜁니다")
+
+                # 요약 건너뛰고 기존 데이터 사용
+                processed_dto = summary_processed_dto
+
             
             return processed_dto
             
         except Exception as e:
             logger.error(f"게시물 추출 중 오류 발생: {post.url} - {e}")
-            return ProcessedPostDTO.create_with_post_only(post)
+            return SummaryProcessedPostDTO.create_with_post_only(post)
 
     async def _fetch_page_content(self, url: str) -> str:
         """
@@ -204,26 +239,32 @@ class WebPostContentScraper(PostContentScraperPort):
             'image_urls': image_urls
         }
     
-    async def _process_ocr_if_needed(self, scraped_content: ScrapedContent):
+    async def _process_ocr_if_needed(self, post_picture: PostPicture):
         """
-        필요시 OCR 처리를 수행하고 ScrapedContent를 업데이트하는 내부 메서드
+        필요시 OCR 처리를 수행하고 PostPicture를 업데이트하는 내부 메서드
         
         Args:
-            scraped_content: 업데이트할 ScrapedContent 객체
+            post_picture: 업데이트할 PostPicture 객체
         """
-        if scraped_content.image_urls and self.ocr_service:
-            logger.info(f"OCR 처리 시작 - 첫 번째 이미지만 처리 (총 {len(scraped_content.image_urls)}개 중)")
-            first_image_url = scraped_content.image_urls[0]
+        if post_picture and post_picture.url and self.ocr_pipeline:
+            logger.info(f"OCR 처리 시작 - 이미지 URL: {post_picture.url}")
             
             try:
-                ocr_result = await self.ocr_service.extract_text_from_image(first_image_url)
-                # OCR 텍스트를 기존 텍스트에 추가
+                # OCRPipeline을 사용하여 텍스트 추출
+                ocr_result = self.ocr_pipeline.run_ocr_pipeline(post_picture.url)
+                
                 if ocr_result:
-                    combined_text = scraped_content.text + "\n\n[OCR 추출 텍스트]\n" + ocr_result
-                    scraped_content.text = combined_text
+                    # 원본 OCR 텍스트 저장
+                    post_picture.original_ocr_text = ocr_result
+                    # 요약은 나중에 summary 서비스에서 처리하므로 여기서는 원본만 저장
                     logger.info(f"OCR 처리 완료 - 추출된 텍스트 길이: {len(ocr_result)}자")
+                else:
+                    logger.warning("OCR 결과가 비어있습니다.")
+                    
             except Exception as e:
                 logger.error(f"OCR 처리 중 오류 발생: {e}")
+                # 실패 시 picture_summary를 "실패"로 설정하여 나중에 저장하지 않도록 함
+                post_picture.picture_summary = "실패"
 
 
 # 사용 예시

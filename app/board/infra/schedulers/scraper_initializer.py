@@ -1,6 +1,6 @@
 # app/board/infra/schedulers/scraper_initializer.py
 import logging
-from app.board.infra.scraper.main_board_scraper import MainBoardScraper
+from app.board.infra.scraper.boards.main_board_scraper import MainBoardScraper
 from app.board.infra.schedulers.board_scrape_scheduler import BoardScrapeScheduler
 
 logger = logging.getLogger(__name__)

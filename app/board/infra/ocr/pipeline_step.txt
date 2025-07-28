@@ -1,0 +1,36 @@
+
+""" 
+Ⅰ. OCR로 이미지 텍스트 추출 (ocr_pipeline_extract - clova_ocr)
+
+
+Ⅱ. OCR 후처리 파이프라인 수행 (ocr_pipeline_post - post_process_pipeline)
+
+   1. 레이아웃 분석
+      1 - ocr_extactor: OCR 응답(JSON) 파싱 → blocks 리스트 추출
+      2 - sorted_block: OCR 블록들 정렬 (Y좌표 기준 -> 줄 내에서는 X 좌표 정렬)
+      3 - split_section: 블록들 y 좌표 정보를 바탕으로 여러 섹션으로 분리
+            - 동적 임계값 적용
+            - 섹션 수가 너무 많으면 y_threshold를 약간 늘려 재귀 호출
+      4 - 테이블, 컬럼으로 의심되는 섹션들 병합 
+         - merge_table_like_sections
+         - merge_column_like_sections
+
+   2. 섹션 타입 판별 (classify_section_type)
+      1 - table_classifier/score_table_section()
+      2 - column_classifier/score_column_section()
+      3 - 일반 줄 글
+   
+      판별 후 섹션에게 타입 부여
+
+   3. 섹션별 후처리 (문단으로 만듬)
+   - table_sections → table_post_process()
+   - column_sections → column_post_process()
+      - 컬럼은 컬럼 내에 테이블이 있거나 또다른 컬럼이 있는 경우가 있음
+         > 단순 컬럼, 복잡 컬럼에 따른 로직 분리
+         - simple_column_post_process()
+         - complex_column_post_process()
+   - text_sections → text_post_process()
+
+   4. 처리가 끝난 모든 섹션을 반환
+
+

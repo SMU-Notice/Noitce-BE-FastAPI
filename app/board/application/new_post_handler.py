@@ -5,7 +5,8 @@ from app.board.infra.repository.post_repo import PostRepository
 from app.board.domain.post import Post
 from app.board.application.ports.post_content_scraping_port import PostContentScraperPort
 from app.board.infra.scraper.posts.web_post_content_scraper import WebPostContentScraper
-from app.board.application.dto.processed_post_dto import ProcessedPostDTO
+from app.board.application.dto.summary_processed_post_dto import SummaryProcessedPostDTO
+from app.board.infra.repository.post_picture_repo import PostPictureRepository
 from app.board.infra.repository.event_location_time_repo import EventLocationTimeRepository
 import os
 
@@ -22,6 +23,7 @@ class NewPostHandler:
         self.enable_scraping = os.environ.get("ENABLE_DETAIL_SCRAPING", "false").lower() == "true"
         self.content_scraper = content_scraper or (WebPostContentScraper() if self.enable_scraping else None)
         self.location_repo = location_repo or EventLocationTimeRepository()
+        self.post_picture_repo = PostPictureRepository()
     
     async def handle_new_posts(self, new_posts: List[Post]) -> List[Post]:
         """
@@ -35,7 +37,7 @@ class NewPostHandler:
         """
         processed_new_posts = []
         location_entities = []
-        ocr_entities = []
+        post_picture_entites = []
 
         
         for post in new_posts:
@@ -49,23 +51,29 @@ class NewPostHandler:
 
             try:
                 if self.enable_scraping and self.content_scraper:
-                    processed_dto: ProcessedPostDTO = await self.content_scraper.extract_post_from_url(post)
-                    logger.info("게시물 내용 추출 완료: %s", processed_dto.post.title)
-                    logger.info("게시물 내용 추출 디버그 정보: %s", processed_dto.post.content_summary[:10] + "...")  # 요약의 일부만 로그에 남김
-                    logger.debug("게시물 내용 추출 세부 정보: %s", processed_dto.post.content_summary[:100] + "...")  # 요약의 일부만 로그에 남김
+                    summary_processed_dto: SummaryProcessedPostDTO = await self.content_scraper.extract_post_from_url(post)
+                    logger.info("게시물 내용 추출 완료: %s", summary_processed_dto.post.title)
+                    logger.info("게시물 내용 추출 디버그 정보: %s", summary_processed_dto.post.content_summary[:10] + "...")  # 요약의 일부만 로그에 남김
+                    logger.debug("게시물 내용 추출 세부 정보: %s", summary_processed_dto.post.content_summary[:100] + "...")  # 요약의 일부만 로그에 남김
                     
                     # Post 객체 추가
-                    processed_new_posts.append(processed_dto.post)
+                    processed_new_posts.append(summary_processed_dto.post)
+
+
+                    # OCR 엔티티가 있으면 추가 (현재는 구현되지 않음)
+                    if (summary_processed_dto.has_post_picture() and summary_processed_dto.post_picture.picture_summary not in [None, "실패"]):
+                        post_picture_entites.append(summary_processed_dto.post_picture)
+                        logger.info("OCR 정보 추가")
+                    else:
+                        logger.info("OCR 정보가 없거나 요약 실패: %s", summary_processed_dto.post.title)
                     
                     # Location 엔티티가 있으면 추가
-                    if processed_dto.has_location():
-                        location_entities.append(processed_dto.location)
-                        logger.info("위치 정보 추가: %s", processed_dto.location.location)
-                    
-                    # OCR 엔티티가 있으면 추가 (현재는 구현되지 않음)
-                    if processed_dto.has_ocr():
-                        ocr_entities.append(processed_dto.ocr_entity)
-                        logger.info("OCR 정보 추가")
+                    if summary_processed_dto.has_location():
+                        location_entities.append(summary_processed_dto.location)
+                        logger.info("위치 정보 추가: %s", summary_processed_dto.location.location)
+                    else:
+                        logger.info("위치 정보가 없거나 추출 실패: %s", summary_processed_dto.post.title)
+
                 else:
                     # 그냥 받은 post 그대로 저장
                     processed_new_posts.append(post)
@@ -83,20 +91,20 @@ class NewPostHandler:
                 logger.error("NewPostHandler: 게시물 저장 실패: %s", e)
                 raise
 
-            # # 2. Location 엔티티 처리
+            # 2. 사진 있으면 저장
+            if post_picture_entites:
+                try:
+                    await self._process_ocr_entities(post_picture_entites, saved_posts)
+                except Exception as e:
+                    logger.error("NewPostHandler: OCR 엔티티 처리 실패: %s", e)
+                    raise
+
+            # # 3. Location 엔티티 처리
             # if location_entities:
             #     try:
             #         await self._process_location_entities(location_entities, saved_posts)
             #     except Exception as e:
             #         logger.error("NewPostHandler: Location 엔티티 처리 실패: %s", e)
-            #         raise
-
-            # # 3. OCR 엔티티 처리
-            # if ocr_entities:
-            #     try:
-            #         await self._process_ocr_entities(ocr_entities, saved_posts)
-            #     except Exception as e:
-            #         logger.error("NewPostHandler: OCR 엔티티 처리 실패: %s", e)
             #         raise
 
             return saved_posts
@@ -115,6 +123,36 @@ class NewPostHandler:
             return saved_posts
         except SQLAlchemyError as e:
             logger.error("NewPostHandler: 게시물 저장 실패: %s", e)
+            raise
+
+
+    async def _process_ocr_entities(self, post_picture_entites, saved_posts)-> None:
+        """OCR 엔티티를 처리하는 메서드 (내부 사용)"""
+        if not post_picture_entites:
+            logger.info("처리할 OCR 엔티티가 없음")
+        
+        try:
+            # saved_posts에서 post_id 매핑 생성
+            post_id_mapping = {post.original_post_id: post.id for post in saved_posts}
+            
+            # OCR 엔티티에 post_id 설정
+            for ocr_entity in post_picture_entites:
+                if ocr_entity.original_post_id:
+                    post_id = post_id_mapping.get(int(ocr_entity.original_post_id))
+                    if post_id:
+                        ocr_entity.post_id = post_id
+                    else:
+                        logger.warning(f"original_post_id {ocr_entity.original_post_id}에 해당하는 post_id를 찾을 수 없음")
+                else:
+                    logger.warning("OCR 엔티티에 original_post_id가 설정되지 않음")
+            
+            # Post Picture 엔티티 저장 
+            saved_post_pictures = await self.post_picture_repo.create_post_pictures(post_picture_entites)
+            logger.info("NewPostHandler: %d개 OCR 엔티티 저장 완료", len(saved_post_pictures))
+            
+            
+        except Exception as e:
+            logger.error("OCR 처리 중 오류 발생: %s", e)
             raise
 
     # async def _process_location_entities(self, location_entities, saved_posts):
@@ -145,36 +183,4 @@ class NewPostHandler:
             
     #     except Exception as e:
     #         logger.error("위치 정보 저장 중 오류 발생: %s", e)
-    #         raise
-
-    # async def _process_ocr_entities(self, ocr_entities, saved_posts):
-    #     """OCR 엔티티를 처리하는 메서드 (내부 사용)"""
-    #     if not ocr_entities:
-    #         logger.info("처리할 OCR 엔티티가 없음")
-    #         return []
-        
-    #     try:
-    #         # saved_posts에서 post_id 매핑 생성
-    #         post_id_mapping = {post.original_post_id: post.id for post in saved_posts}
-            
-    #         # OCR 엔티티에 post_id 설정
-    #         for ocr_entity in ocr_entities:
-    #             if ocr_entity.original_post_id:
-    #                 post_id = post_id_mapping.get(int(ocr_entity.original_post_id))
-    #                 if post_id:
-    #                     ocr_entity.post_id = post_id
-    #                 else:
-    #                     logger.warning(f"original_post_id {ocr_entity.original_post_id}에 해당하는 post_id를 찾을 수 없음")
-    #             else:
-    #                 logger.warning("OCR 엔티티에 original_post_id가 설정되지 않음")
-            
-    #         # OCR 엔티티 저장 (구현 필요)
-    #         # saved_ocr = await self.ocr_repo.create_ocr_results(ocr_entities)
-    #         # logger.info("NewPostHandler: %d개 OCR 결과 저장 완료", len(saved_ocr))
-            
-    #         logger.info("OCR 엔티티 저장 로직은 아직 구현되지 않음")
-    #         return []
-            
-    #     except Exception as e:
-    #         logger.error("OCR 처리 중 오류 발생: %s", e)
     #         raise

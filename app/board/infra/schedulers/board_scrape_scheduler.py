@@ -2,7 +2,7 @@ import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import logging
 import os
-from app.board.infra.scraper.board_scraper_base import BoardScraper
+from app.board.infra.scraper.boards.board_scraper_base import BoardScraper
 from app.board.application.scraped_post_manager import ScrapedPostManager
 from app.board.infra.http_new_post_sender import HttpNewPostSender
 

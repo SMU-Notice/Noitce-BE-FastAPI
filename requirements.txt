@@ -13,3 +13,4 @@ aiohttp              # Async HTTP client/server library
 pydantic             # Data validation and settings management (used with FastAPI)
 dependency-injector  # Dependency injection container library
 openai               # OpenAI API client for AI/ML services
+numpy                # Numerical computing library
