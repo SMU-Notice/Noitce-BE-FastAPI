@@ -43,7 +43,7 @@ class OpenAISummaryAdapter(SummaryPort):
             return post
         
         # 50자 이하면 그대로 반환 (요약할 필요 없음)
-        if len(content_str.strip()) <= 50:
+        if len(content_str.strip()) <= 30:
             logger.info("내용이 짧아서 그대로 반환합니다. 길이: %d자", len(content_str.strip()))
             post.content_summary = content_str.strip()
             return post
@@ -64,6 +64,7 @@ class OpenAISummaryAdapter(SummaryPort):
                     장소: (있을 때만)
                     신청방법: (있을 때만)
                     주의사항: (있을 때만)
+                    기타: (있을 때만)
 
                     공지 내용: {content_str}"""
                 }
@@ -241,7 +242,8 @@ class OpenAISummaryAdapter(SummaryPort):
                 {
                     "role": "user", 
                     "content": f"""다음 이미지에서 추출된 텍스트를 정리해주세요.
-    각 섹션은 '---'로 구분되어 있습니다.
+                    
+                    각 섹션은 '---'로 구분되어 있습니다.
 
                     **정리 방식:**
                     - 핵심 정보만 추출하여 항목별로 정리

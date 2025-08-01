@@ -47,7 +47,7 @@ class MainBoardScraper(BoardScraper):
                         campus_class = campus_tag["class"]
                         if self.campus_filter not in campus_class:
                             continue
-                        campus = "상명" if self.campus_filter == "sangmyung" else "서울"
+                        campus = "상명" if self.campus_filter == "sang" else "서울"
                     else:
                         campus = "N/A"
 
