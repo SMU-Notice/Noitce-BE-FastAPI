@@ -8,7 +8,7 @@ from typing import List
 logger = logging.getLogger(__name__)
 
 
-class OCRPipeline:
+class ClovaOCRAdapter:
       
    def run_ocr_pipeline(self, image_path: str) -> str:
         ocr_response = call_clova_ocr(image_path)
