@@ -38,7 +38,8 @@ app/
     ├── domain/                 # 🟢 도메인 계층
     │   └── repository/        # Repository 인터페이스
     ├── application/           # 🟡 애플리케이션 계층
-    │   └── handlers/          # 유스케이스 처리
+    │   ├── services/
+        └── handlers/          # 유스케이스 처리
     └── infra/                 # 🔴 인프라 계층
         ├── repository/        # Repository 구현체
         ├── scraper/          # 스크래퍼 관련
@@ -80,6 +81,8 @@ app/
 
 새로운 게시판의 스크래퍼를 추가하는 과정을 단계별로 설명합니다.
 
+## 3-1. 게시판(Board) 스크래퍼 추가 방법
+
 ### Step 1: 설정 추가
 
 `app/config/scraper_config.py`에 새로운 스크래퍼 설정을 추가합니다.
@@ -108,7 +111,7 @@ SCRAPER_CONFIGS = {
             "article.offset": 0
         },
         interval=3600,  # 1시간
-        campus="sangmyung"
+        campus="sang" # 상명 (서울 & 천안 캠퍼스)
     ),
 
     # 새로운 스크래퍼 설정 추가
@@ -120,7 +123,7 @@ SCRAPER_CONFIGS = {
             "limit": 50
         },
         interval=1800,  # 30분
-        campus="seoul"  # 또는 "sangmyung"
+        campus="seoul"  # 서울 캠퍼스
     )
 }
 
@@ -195,6 +198,39 @@ uvicorn app.main:app --reload
 
 서버가 시작되면 새로운 스크래퍼가 자동으로 등록되고 설정된 주기마다 실행됩니다.
 
+## 3-2. 게시물(Post) 스크래퍼 추가 방법
+
+### Step 1: 스크래퍼 코드 추가
+
+`app/board/infra/scraper/posts/` 디렉코리에 IPostContentScraper 인터페이스룰 구현한 새로운 스크래퍼 코드 추가
+
+```python
+class IPostContentScraper(ABC):
+    """게시물 콘텐츠 스크래핑 인터페이스"""
+
+    @abstractmethod
+    async def extract_post_content_from_url(self, post: Post) -> SummaryProcessedPostDTO:
+        """공개 API - 외부에서 호출"""
+        pass
+
+```
+
+### Step 2: 설정 추가
+
+`app/board/infra/scraper/posts/scraper_factory.py`에 새로운 스크래퍼 설정을 추가합니다.
+
+```python
+# 환경변수에서 새로운 게시판 ID 가져오기
+NEW_BOARD_ID = int(os.getenv("NEW_BOARD_ID"))
+
+# _board_scraper_mapping에 새로운 매핑 추가
+_board_scraper_mapping: Dict[int, type] = {
+    MAIN_BOARD_SANGMYUNG_BOARD_ID: MainBoardPostScraper,
+    MAIN_BOARD_SEOUL_BOARD_ID: MainBoardPostScraper,
+    NEW_BOARD_ID: NewBoardPostScraper,  # 새로운 스크래퍼 추가
+}
+```
+
 ## 4. 개발 가이드라인
 
 ### 스크래퍼 개발 규칙
@@ -217,15 +253,6 @@ uvicorn app.main:app --reload
 ### 1. 환경 설정
 
 ```bash
-# 프로젝트 클론
-git clone <repository-url>
-cd board-scraper
-
-# 가상환경 생성 및 활성화
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-
 # 의존성 설치
 pip install -r requirements.txt
 ```
@@ -261,9 +288,6 @@ CREATE DATABASE board_scraper;
 ```bash
 # 개발 서버 실행 (자동 재시작)
 uvicorn app.main:app --reload --port 8000
-
-# 또는 FastAPI CLI 사용
-fastapi dev app/main.py
 
 # 프로덕션 실행
 uvicorn app.main:app --host 0.0.0.0 --port 8000

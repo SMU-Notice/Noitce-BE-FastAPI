@@ -8,6 +8,7 @@ from app.board.infra.scraper.posts.scraper_factory import PostScraperFactory
 from app.board.application.dto.summary_processed_post_dto import SummaryProcessedPostDTO
 from app.board.infra.repository.post_picture_repo import PostPictureRepository
 from app.board.infra.repository.event_location_time_repo import EventLocationTimeRepository
+from app.board.application.post_processing_pipeline import PostProcessingPipeline
 import os
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ class NewPostHandler:
         self.post_scraper_factory = PostScraperFactory()
         self.location_repo = location_repo or EventLocationTimeRepository()
         self.post_picture_repo = PostPictureRepository()
+        self.post_processing_pipeline = PostProcessingPipeline()
     
     async def handle_new_posts(self, new_posts: List[Post]) -> List[Post]:
         """
@@ -51,8 +53,7 @@ class NewPostHandler:
 
             try:
                 if self.enable_scraping:
-                    content_scraper = self.post_scraper_factory.create_scraper_by_board_id(post)
-                    summary_processed_dto: SummaryProcessedPostDTO = await content_scraper.extract_post_from_url(post)
+                    summary_processed_dto: SummaryProcessedPostDTO = await self.post_processing_pipeline.process_post(post)
                     logger.info("게시물 내용 추출 완료: %s", summary_processed_dto.post.title)
                     logger.info("게시물 내용 추출 디버그 정보: %s", summary_processed_dto.post.content_summary[:10] + "...")  # 요약의 일부만 로그에 남김
                     logger.debug("게시물 내용 추출 세부 정보: %s", summary_processed_dto.post.content_summary[:100] + "...")  # 요약의 일부만 로그에 남김
