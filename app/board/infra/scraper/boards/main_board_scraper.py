@@ -37,9 +37,9 @@ class MainBoardScraper(BoardScraper):
                 posts = {}
 
                 for li in soup.select(".board-thumb-wrap > li"):
-                    # 공지글일 경우 무시 
-                    if li.select_one(".noti"):
-                        continue
+                    # # 공지글일 경우 무시 -> 학교 홈페이지에서 공지 사항일 경우 일반글에 나오지 않게 바꿈
+                    # if li.select_one(".noti"):
+                    #     continue
 
                     # 캠퍼스 정보
                     campus_tag = li.select_one(".cmp")
@@ -47,7 +47,7 @@ class MainBoardScraper(BoardScraper):
                         campus_class = campus_tag["class"]
                         if self.campus_filter not in campus_class:
                             continue
-                        campus = "상명" if self.campus_filter == "sangmyung" else "서울"
+                        campus = "상명" if self.campus_filter == "sang" else "서울"
                     else:
                         campus = "N/A"
 

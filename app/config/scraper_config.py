@@ -9,13 +9,17 @@ class ScraperConfig(BaseModel):
     interval: int
     campus: Literal["sang", "seoul"]
 
+# 스크래퍼 이름 기반 board_id
+MAIN_BOARD_SANGMYUNG_BOARD_ID = int(os.getenv("MAIN_BOARD_SANGMYUNG_BOARD_ID"))
+MAIN_BOARD_SEOUL_BOARD_ID = int(os.getenv("MAIN_BOARD_SEOUL_BOARD_ID"))
+
 # 스크래퍼 이름 기반 interval 환경변수 (기본값: 3600초 = 1시간)
 MAIN_BOARD_SANGMYUNG_INTERVAL = int(os.getenv("MAIN_BOARD_SANGMYUNG_INTERVAL", 3600))
 MAIN_BOARD_SEOUL_INTERVAL = int(os.getenv("MAIN_BOARD_SEOUL_INTERVAL", 3600))
 
 SCRAPER_CONFIGS = {
     "main_board_sangmyung": ScraperConfig(
-        board_id=1,
+        board_id=MAIN_BOARD_SANGMYUNG_BOARD_ID,
         base_url="https://www.smu.ac.kr/kor/life/notice.do",
         params={
             "srCampus": "smu",
@@ -27,7 +31,7 @@ SCRAPER_CONFIGS = {
         campus="sang"
     ),
     "main_board_seoul": ScraperConfig(
-        board_id=2,
+        board_id=MAIN_BOARD_SEOUL_BOARD_ID,
         base_url="https://www.smu.ac.kr/kor/life/notice.do",
         params={
             "srCampus": "smu",

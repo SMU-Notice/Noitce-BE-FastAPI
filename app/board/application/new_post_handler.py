@@ -1,29 +1,32 @@
 import logging
 from typing import List
 from sqlalchemy.exc import SQLAlchemyError
+from dependency_injector.wiring import Provide, inject
 from app.board.infra.repository.post_repo import PostRepository
 from app.board.domain.post import Post
-from app.board.application.ports.post_content_scraping_port import PostContentScraperPort
-from app.board.infra.scraper.posts.web_post_content_scraper import WebPostContentScraper
+from app.board.infra.scraper.posts.scraper_factory import PostScraperFactory
 from app.board.application.dto.summary_processed_post_dto import SummaryProcessedPostDTO
 from app.board.infra.repository.post_picture_repo import PostPictureRepository
 from app.board.infra.repository.event_location_time_repo import EventLocationTimeRepository
+from app.board.application.post_processing_pipeline import PostProcessingPipeline
 import os
-
 
 logger = logging.getLogger(__name__)
 
-
 class NewPostHandler:
     """새로운 게시물 처리 전용 클래스"""
-    
-    def __init__(self, post_repo: PostRepository = None, content_scraper: PostContentScraperPort = None, location_repo: EventLocationTimeRepository = None):
+    @inject
+    def __init__(self,
+                post_repo: PostRepository = None,
+                location_repo: EventLocationTimeRepository = None,
+                ):
         self.post_repo = post_repo or PostRepository()
         # 환경변수로 상세 스크랩 여부 결정
         self.enable_scraping = os.environ.get("ENABLE_DETAIL_SCRAPING", "false").lower() == "true"
-        self.content_scraper = content_scraper or (WebPostContentScraper() if self.enable_scraping else None)
+        self.post_scraper_factory = PostScraperFactory()
         self.location_repo = location_repo or EventLocationTimeRepository()
         self.post_picture_repo = PostPictureRepository()
+        self.post_processing_pipeline = PostProcessingPipeline()
     
     async def handle_new_posts(self, new_posts: List[Post]) -> List[Post]:
         """
@@ -39,7 +42,6 @@ class NewPostHandler:
         location_entities = []
         post_picture_entites = []
 
-        
         for post in new_posts:
             logger.info("NewPostHandler: 신규 게시물 처리 시작 (게시물 이름): %s", post.title)
 
@@ -50,15 +52,14 @@ class NewPostHandler:
                 continue
 
             try:
-                if self.enable_scraping and self.content_scraper:
-                    summary_processed_dto: SummaryProcessedPostDTO = await self.content_scraper.extract_post_from_url(post)
+                if self.enable_scraping:
+                    summary_processed_dto: SummaryProcessedPostDTO = await self.post_processing_pipeline.process_post(post)
                     logger.info("게시물 내용 추출 완료: %s", summary_processed_dto.post.title)
                     logger.info("게시물 내용 추출 디버그 정보: %s", summary_processed_dto.post.content_summary[:10] + "...")  # 요약의 일부만 로그에 남김
                     logger.debug("게시물 내용 추출 세부 정보: %s", summary_processed_dto.post.content_summary[:100] + "...")  # 요약의 일부만 로그에 남김
                     
                     # Post 객체 추가
                     processed_new_posts.append(summary_processed_dto.post)
-
 
                     # OCR 엔티티가 있으면 추가 (현재는 구현되지 않음)
                     if (summary_processed_dto.has_post_picture() and summary_processed_dto.post_picture.picture_summary not in [None, "실패"]):
@@ -125,7 +126,6 @@ class NewPostHandler:
             logger.error("NewPostHandler: 게시물 저장 실패: %s", e)
             raise
 
-
     async def _process_ocr_entities(self, post_picture_entites, saved_posts)-> None:
         """OCR 엔티티를 처리하는 메서드 (내부 사용)"""
         if not post_picture_entites:
@@ -149,7 +149,6 @@ class NewPostHandler:
             # Post Picture 엔티티 저장 
             saved_post_pictures = await self.post_picture_repo.create_post_pictures(post_picture_entites)
             logger.info("NewPostHandler: %d개 OCR 엔티티 저장 완료", len(saved_post_pictures))
-            
             
         except Exception as e:
             logger.error("OCR 처리 중 오류 발생: %s", e)
