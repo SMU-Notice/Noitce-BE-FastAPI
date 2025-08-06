@@ -57,7 +57,7 @@ class OCRProcessor:
         
         try:
             # OCR 어댑터를 사용하여 텍스트 추출
-            extracted_text = self.ocr_adapter.extract_text_from_image(post_picture.url)
+            extracted_text = await self.ocr_adapter.extract_text_from_image_pipeline(post_picture.url)
             
             if extracted_text:
                 # 원본 OCR 텍스트 저장

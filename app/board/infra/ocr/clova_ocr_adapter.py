@@ -1,6 +1,7 @@
 from .ocr_pipeline.call_clova import call_clova_ocr
 from .ocr_pipeline.post_process_pipeline import post_process_pipeline
 from .ocr_pipeline.config import section_classification_config, post_process_config
+from app.board.application.ports.ocr_port import OCRPort
 import logging
 from typing import List
 
@@ -8,9 +9,9 @@ from typing import List
 logger = logging.getLogger(__name__)
 
 
-class ClovaOCRAdapter:
+class ClovaOCRAdapter(OCRPort):
       
-   def run_ocr_pipeline(self, image_path: str) -> str:
+   def extract_text_from_image_pipeline(self, image_path: str) -> str:
         ocr_response = call_clova_ocr(image_path)
 
         results: List[str] = post_process_pipeline(

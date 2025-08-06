@@ -202,7 +202,7 @@ uvicorn app.main:app --reload
 
 ### Step 1: 스크래퍼 코드 추가
 
-`app/board/infra/scraper/posts/` 디렉코리에 IPostContentScraper 인터페이스룰 구현한 새로운 스크래퍼 코드 추가
+`app/board/infra/scraper/posts/` 디렉토리에 IPostContentScraper 인터페이스를 구현한 새로운 스크래퍼 코드 추가
 
 ```python
 class IPostContentScraper(ABC):
