@@ -661,7 +661,7 @@ SCRAPER_CONFIGS = {
         interval=GRAD_NOTICE_INTERVAL,
         campus="seoul"
     ),   
-# 일반대학원 게시판
+# 공학교육혁신센터 게시판
     "icee_notice": ScraperConfig(
         board_id=ICEE_NOTICE_BOARD_ID,  
         base_url="https://icee.smu.ac.kr/icee/community/notice.do",
