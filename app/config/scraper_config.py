@@ -588,7 +588,7 @@ SCRAPER_CONFIGS = {
         campus="seoul"
     ),
 
-# 무형예술전공 게시판
+# 생활예술전공 게시판
     "smulad_notice": ScraperConfig(
         board_id=SMULAD_NOTICE_BOARD_ID,  
         base_url="https://smulad.smu.ac.kr/smulad/community/notice.do",
