@@ -370,7 +370,7 @@ SCRAPER_CONFIGS = {
 # 경제금융학부 게시판
     "sbe_notice": ScraperConfig(
         board_id=SBE_NOTICE_BOARD_ID,  
-        base_url="https://sbe.smu.ac.kr/economic/index.do#a",
+        base_url="https://sbe.smu.ac.kr/economic/community/notice.do",
         params={
             "mode": "list",          
             "articleLimit": 50,      
