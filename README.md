@@ -271,7 +271,7 @@ INSERT INTO board (id, campus, site, board_type, url)
 VALUES (3, 'seoul', 'Example University', 'notice', 'https://example.ac.kr');
 ```
 
-### Step 5: 서버 재시작
+#### Step 5: 서버 재시작
 
 ```bash
 uvicorn app.main:app --reload
