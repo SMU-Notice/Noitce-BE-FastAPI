@@ -3,7 +3,7 @@ from app.board.application.ports.summary_port import SummaryPort
 from app.board.infra.adapters.openai_summary_adapter import OpenAISummaryAdapter
 from app.board.application.dto.summary_processed_post_dto import SummaryProcessedPostDTO
 from app.board.domain.event_location_time import EventLocationTime
-from typing import Optional, List, Tuple
+from typing import Optional, List
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ class SummaryService:
 
     def _remove_duplicate_locations(self, locations: List[EventLocationTime]) -> List[EventLocationTime]:
         """
-        위치 리스트에서 중복된 위치 제거 (완전히 동일한 위치명만 제거)
+        위치 리스트에서 중복된 위치 제거 (위치명 + 날짜 정보 기준)
         
         Args:
             locations: 위치 정보 리스트
@@ -141,7 +141,8 @@ class SummaryService:
             if not location or not location.location:
                 continue
                 
-            location_key = location.location.lower().strip()
+            # 위치명과 날짜 정보를 조합한 고유 키 생성
+            location_key = self._create_location_key(location)
             
             if location_key not in seen_locations:
                 final_locations.append(location)
@@ -152,6 +153,39 @@ class SummaryService:
         
         logger.info(f"중복 제거 완료: {len(locations)}개 → {len(final_locations)}개")
         return final_locations
+
+    def _create_location_key(self, location: EventLocationTime) -> str:
+        """
+        위치 객체에서 중복 체크용 고유 키 생성
+        
+        Args:
+            location: 위치 정보 객체
+            
+        Returns:
+            str: 중복 체크용 고유 키
+        """
+        location_name = location.location.lower().strip() if location.location else ""
+        
+        # 날짜 정보 처리 (None 체크 포함)
+        start_date = ""
+        end_date = ""
+        
+        if hasattr(location, 'start_date') and location.start_date is not None:
+            start_date = str(location.start_date)
+        
+        if hasattr(location, 'end_date') and location.end_date is not None:
+            end_date = str(location.end_date)
+        
+        # 이벤트 시간 정보
+        event_time = location.event_time if location.event_time else ""
+        
+        # 모든 날짜 정보가 없는 경우는 위치명만으로 키 생성
+        if not start_date and not end_date and not event_time:
+            return location_name
+        
+        # 키 조합: "위치명|시작날짜|종료날짜|이벤트시간"
+        key = f"{location_name}|{start_date}|{end_date}|{event_time}"
+        return key
 
     async def _extract_location_from_content(self, summary_processed_dto: SummaryProcessedPostDTO) -> Optional[List[EventLocationTime]]:
         """
