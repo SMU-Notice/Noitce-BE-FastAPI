@@ -84,7 +84,7 @@ class SummaryService:
         Args:
             summary_processed_dto: 처리할 SummaryProcessedPostDTO
         """
-        extracted_locations = []
+        all_locations = []
 
         logger.info("위치 정보 추출을 시작합니다.")
 
@@ -92,8 +92,7 @@ class SummaryService:
             # 3-1. 본문에서 위치 정보 추출
             content_locations = await self._extract_location_from_content(summary_processed_dto)
             if content_locations:
-                for location in content_locations:
-                    extracted_locations.append(("content", location))
+                all_locations.extend(content_locations)
                 logger.info(f"본문에서 {len(content_locations)}개의 위치 정보 추출 성공")
             else:
                 logger.debug("본문에서 위치 정보 추출 실패 또는 위치 정보 없음")
@@ -101,14 +100,13 @@ class SummaryService:
             # 3-2. 사진에서 위치 정보 추출
             picture_locations = await self._extract_location_from_picture(summary_processed_dto)
             if picture_locations:
-                for location in picture_locations:
-                    extracted_locations.append(("picture", location))
+                all_locations.extend(picture_locations)
                 logger.info(f"사진에서 {len(picture_locations)}개의 위치 정보 추출 성공")
             else:
                 logger.debug("사진에서 위치 정보 추출 실패 또는 위치 정보 없음")
 
             # 3-3. 중복 장소 제거 및 최종 위치 리스트 생성
-            final_locations = self._process_extracted_locations(extracted_locations)
+            final_locations = self._remove_duplicate_locations(all_locations)
             
             # DTO에 locations 설정
             summary_processed_dto.locations = final_locations
@@ -122,6 +120,38 @@ class SummaryService:
                 
         except Exception as e:
             logger.error(f"위치 정보 추출 중 오류 발생: {e}")
+
+    def _remove_duplicate_locations(self, locations: List[EventLocationTime]) -> List[EventLocationTime]:
+        """
+        위치 리스트에서 중복된 위치 제거 (완전히 동일한 위치명만 제거)
+        
+        Args:
+            locations: 위치 정보 리스트
+            
+        Returns:
+            List[EventLocationTime]: 중복이 제거된 위치 정보 리스트
+        """
+        if not locations:
+            return []
+        
+        final_locations = []
+        seen_locations = set()
+        
+        for location in locations:
+            if not location or not location.location:
+                continue
+                
+            location_key = location.location.lower().strip()
+            
+            if location_key not in seen_locations:
+                final_locations.append(location)
+                seen_locations.add(location_key)
+                logger.debug(f"위치 추가: {location.location}")
+            else:
+                logger.debug(f"중복 위치 제거: {location.location}")
+        
+        logger.info(f"중복 제거 완료: {len(locations)}개 → {len(final_locations)}개")
+        return final_locations
 
     async def _extract_location_from_content(self, summary_processed_dto: SummaryProcessedPostDTO) -> Optional[List[EventLocationTime]]:
         """
@@ -228,62 +258,3 @@ class SummaryService:
         
         logger.info(f"총 {len(location_entities)}개의 위치 엔티티 변환 완료")
         return location_entities
-
-    def _process_extracted_locations(self, extracted_locations: List[Tuple[str, EventLocationTime]]) -> List[EventLocationTime]:
-        """
-        추출된 위치 정보들을 처리하여 최종 위치 리스트 생성
-        
-        Args:
-            extracted_locations: 추출된 위치 정보 리스트 [(source, location), ...]
-            
-        Returns:
-            List[EventLocationTime]: 최종 처리된 위치 정보 리스트
-        """
-        final_locations = []
-        
-        if len(extracted_locations) == 1:
-            # 하나만 있으면 그대로 추가
-            final_locations.append(extracted_locations[0][1])
-            logger.info(f"위치 정보 1개 확정: {extracted_locations[0][1].location}")
-        
-        elif len(extracted_locations) == 2:
-            content_loc = extracted_locations[0][1] if extracted_locations[0][0] == "content" else extracted_locations[1][1]
-            picture_loc = extracted_locations[0][1] if extracted_locations[0][0] == "picture" else extracted_locations[1][1]
-            
-            if self._are_same_locations(content_loc, picture_loc):
-                # 같은 장소로 판단되면 본문 우선 (더 상세한 정보일 가능성이 높음)
-                final_locations.append(content_loc)
-                logger.info(f"동일 장소로 판단 - 본문 위치 정보 사용: {content_loc.location}")
-            else:
-                # 다른 장소면 둘 다 추가
-                final_locations.extend([content_loc, picture_loc])
-                logger.info(f"서로 다른 장소 - 모두 추가: {content_loc.location}, {picture_loc.location}")
-        
-        return final_locations
-
-    def _are_same_locations(self, loc1: EventLocationTime, loc2: EventLocationTime) -> bool:
-        """
-        두 위치 정보가 같은 장소인지 판단하는 메서드
-        
-        Args:
-            loc1: 첫 번째 위치 정보
-            loc2: 두 번째 위치 정보
-            
-        Returns:
-            bool: 같은 장소인지 여부
-        """
-        if not loc1 or not loc2:
-            return False
-        
-        # 간단한 문자열 유사도 비교
-        loc1_name = loc1.location.lower().strip()
-        loc2_name = loc2.location.lower().strip()
-        
-        # 완전히 같거나, 하나가 다른 하나를 포함하는 경우
-        if loc1_name == loc2_name:
-            return True
-        
-        if loc1_name in loc2_name or loc2_name in loc1_name:
-            return True
-        
-        return False
