@@ -69,11 +69,13 @@ class NewPostHandler:
                         logger.info("OCR 정보가 없거나 요약 실패: %s", summary_processed_dto.post.title)
                     
                     # Location 엔티티가 있으면 추가
-                    if summary_processed_dto.has_location():
-                        location_entities.append(summary_processed_dto.location)
-                        logger.info("위치 정보 추가: %s", summary_processed_dto.location.location)
+                    if summary_processed_dto.has_locations():
+                        location_entities.extend(summary_processed_dto.locations)
+                        
+                        # 로깅
+                        logger.info("총 %d개의 위치 정보가 추가되었습니다.", len(summary_processed_dto.locations))
                     else:
-                        logger.info("위치 정보가 없거나 추출 실패: %s", summary_processed_dto.post.title)
+                        logger.info("위치 정보가 없거나 요약 실패: %s", summary_processed_dto.post.title)
 
                 else:
                     # 그냥 받은 post 그대로 저장
@@ -100,13 +102,13 @@ class NewPostHandler:
                     logger.error("NewPostHandler: OCR 엔티티 처리 실패: %s", e)
                     raise
 
-            # # 3. Location 엔티티 처리
-            # if location_entities:
-            #     try:
-            #         await self._process_location_entities(location_entities, saved_posts)
-            #     except Exception as e:
-            #         logger.error("NewPostHandler: Location 엔티티 처리 실패: %s", e)
-            #         raise
+            # 3. Location 엔티티 처리
+            if location_entities:
+                try:
+                    await self._process_location_entities(location_entities, saved_posts)
+                except Exception as e:
+                    logger.error("NewPostHandler: Location 엔티티 처리 실패: %s", e)
+                    raise
 
             return saved_posts
 
@@ -154,32 +156,32 @@ class NewPostHandler:
             logger.error("OCR 처리 중 오류 발생: %s", e)
             raise
 
-    # async def _process_location_entities(self, location_entities, saved_posts):
-    #     """Location 엔티티를 처리하는 메서드 (내부 사용)"""
-    #     if not location_entities:
-    #         logger.info("처리할 Location 엔티티가 없음")
-    #         return []
+    async def _process_location_entities(self, location_entities, saved_posts):
+        """Location 엔티티를 처리하는 메서드 (내부 사용)"""
+        if not location_entities:
+            logger.info("처리할 Location 엔티티가 없음")
+            return []
         
-    #     try:
-    #         # saved_posts에서 post_id 매핑 생성
-    #         post_id_mapping = {post.original_post_id: post.id for post in saved_posts}
+        try:
+            # saved_posts에서 post_id 매핑 생성
+            post_id_mapping = {post.original_post_id: post.id for post in saved_posts}
             
-    #         # Location 엔티티에 post_id 설정
-    #         for location_entity in location_entities:
-    #             if location_entity.original_post_id:
-    #                 post_id = post_id_mapping.get(int(location_entity.original_post_id))
-    #                 if post_id:
-    #                     location_entity.post_id = post_id
-    #                 else:
-    #                     logger.warning(f"original_post_id {location_entity.original_post_id}에 해당하는 post_id를 찾을 수 없음")
-    #             else:
-    #                 logger.warning("Location 엔티티에 original_post_id가 설정되지 않음")
+            # Location 엔티티에 post_id 설정
+            for location_entity in location_entities:
+                if location_entity.original_post_id:
+                    post_id = post_id_mapping.get(int(location_entity.original_post_id))
+                    if post_id:
+                        location_entity.post_id = post_id
+                    else:
+                        logger.warning(f"original_post_id {location_entity.original_post_id}에 해당하는 post_id를 찾을 수 없음")
+                else:
+                    logger.warning("Location 엔티티에 original_post_id가 설정되지 않음")
             
-    #         # Location 엔티티 저장
-    #         saved_locations = await self.location_repo.create_event_location_times(location_entities)
-    #         logger.info("NewPostHandler: %d개 위치 정보 저장 완료", len(saved_locations))
-    #         return saved_locations
+            # Location 엔티티 저장
+            saved_locations = await self.location_repo.create_event_location_times(location_entities)
+            logger.info("NewPostHandler: %d개 위치 정보 저장 완료", len(saved_locations))
+            return saved_locations
             
-    #     except Exception as e:
-    #         logger.error("위치 정보 저장 중 오류 발생: %s", e)
-    #         raise
+        except Exception as e:
+            logger.error("위치 정보 저장 중 오류 발생: %s", e)
+            raise

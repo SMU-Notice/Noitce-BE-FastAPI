@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, List
 from app.board.domain.post import Post
 from app.board.domain.event_location_time import EventLocationTime
 from app.board.domain.post_picture import PostPicture
@@ -9,11 +9,11 @@ from app.board.domain.post_picture import PostPicture
 class SummaryProcessedPostDTO:
     """
     게시물 처리 결과를 담는 DTO 클래스
-    Post, Location, PostPicture 엔티티를 모두 포함하며, Location과 PostPicture은 None이 올 수 있음
+    Post, Locations, PostPicture 엔티티를 모두 포함하며, Locations과 PostPicture은 비어있거나 None이 올 수 있음
     """
     post: Post
-    location: Optional[EventLocationTime] = None
     post_picture: Optional[PostPicture] = None  
+    locations: List[EventLocationTime] = field(default_factory=list)
     
     def __post_init__(self):
         """초기화 후 검증"""
@@ -33,22 +33,30 @@ class SummaryProcessedPostDTO:
         """
         return cls(post=post)
     
-    
-    def has_location(self) -> bool:
+    def has_locations(self) -> bool:
         """위치 정보가 있는지 확인"""
-        return self.location is not None
+        return len(self.locations) > 0
+    
+    def get_locations_count(self) -> int:
+        """위치 정보 개수 반환"""
+        return len(self.locations)
     
     def has_post_picture(self) -> bool:
         """PostPicture 정보가 있는지 확인"""
         return self.post_picture is not None
     
+    def add_location(self, location: EventLocationTime) -> None:
+        """위치 정보 추가"""
+        if location:
+            self.locations.append(location)
+    
     def to_dict(self) -> dict:
         """딕셔너리 형태로 변환"""
         return {
             'post': self.post,
-            'location': self.location.to_dict() if self.location else None,
+            'locations': [location.to_dict() for location in self.locations] if self.locations else [],
             'post_picture': self.post_picture
         }
     
     def __repr__(self) -> str:
-        return f"SummaryProcessedPostDTO(post_id={self.post.id}, has_location={self.has_location()}, has_post_picture={self.has_post_picture()})" 
+        return f"SummaryProcessedPostDTO(post_id={self.post.id}, locations_count={self.get_locations_count()}, has_post_picture={self.has_post_picture()})"
