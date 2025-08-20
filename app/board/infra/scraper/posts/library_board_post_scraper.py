@@ -12,16 +12,16 @@ from app.board.domain.post_picture import PostPicture
 logger = logging.getLogger(__name__)
 
 
-class MainBoardPostScraper(IPostContentScraper):
-    """상명대 공지사항 게시판 전용 스크래퍼"""
+class LibraryBoardPostScraper(IPostContentScraper):
+    """학술정보관 게시판 전용 스크래퍼"""
     
     def __init__(self):
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
-        self.base_url = "https://www.smu.ac.kr"
+        self.base_url = "https://lib.smu.ac.kr"
         self.content_selectors = [
-            '.fr-view',           # Froala 에디터
+            '.sponge-panel-white-remark.sponge-min-height',  # 학술정보관 게시판 구조
             '.board-view-content',
             '.content',
             '.view-content',
