@@ -3,6 +3,7 @@ import aiohttp
 import logging
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
+from typing import Dict
 
 from app.board.infra.scraper.posts.post_content_scraper import IPostContentScraper
 from app.board.application.dto.summary_processed_post_dto import SummaryProcessedPostDTO
@@ -12,16 +13,20 @@ from app.board.domain.post_picture import PostPicture
 logger = logging.getLogger(__name__)
 
 
-class MainBoardPostScraper(IPostContentScraper):
-    """상명대 공지사항 게시판 전용 스크래퍼"""
+class SmCareerPostScraper(IPostContentScraper):
+    """대학일자리플러스센터 게시판 전용 스크래퍼"""
     
     def __init__(self):
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
-        self.base_url = "https://www.smu.ac.kr"
+        self.base_url = "https://smcareer.smu.ac.kr"
         self.content_selectors = [
-            '.fr-view',           # Froala 에디터
+            '.tx-content-container',  # 대학일자리플러스센터 게시판 구조
+            '#hwpEditorBoardContent', # HWP 에디터 내용
+            '#bo_v_con',              
+            '.sponge-panel-white-remark.sponge-min-height',
+            '.fr-view',           
             '.board-view-content',
             '.content',
             '.view-content',
