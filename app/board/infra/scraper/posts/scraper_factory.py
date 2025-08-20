@@ -6,6 +6,7 @@ from app.board.domain.post import Post
 from app.board.infra.scraper.posts.main_board_post_scraper import MainBoardPostScraper
 from app.board.infra.scraper.posts.library_board_post_scraper import LibraryBoardPostScraper
 from app.board.infra.scraper.posts.sw_program_post_scraper import SwProgramPostScraper
+from app.board.infra.scraper.posts.sm_career_post_scraper import SmCareerPostScraper
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ class PostScraperFactory:
         GRAD_NOTICE_BOARD_ID: MainBoardPostScraper,
         ICEE_NOTICE_BOARD_ID: MainBoardPostScraper,
         SWAI_NOTICE_BOARD_ID: SwProgramPostScraper,
-        SMCAREER_NOTICE_BOARD_ID: MainBoardPostScraper,
+        SMCAREER_NOTICE_BOARD_ID: SmCareerPostScraper,
     }
     
     @classmethod
