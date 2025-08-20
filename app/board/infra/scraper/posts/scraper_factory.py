@@ -5,6 +5,7 @@ from app.board.infra.scraper.posts.post_content_scraper import IPostContentScrap
 from app.board.domain.post import Post
 from app.board.infra.scraper.posts.main_board_post_scraper import MainBoardPostScraper
 from app.board.infra.scraper.posts.library_board_post_scraper import LibraryBoardPostScraper
+from app.board.infra.scraper.posts.sw_program_post_scraper import SwProgramPostScraper
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,7 @@ class PostScraperFactory:
         FOREIGN_NOTICE_BOARD_ID: MainBoardPostScraper,
         GRAD_NOTICE_BOARD_ID: MainBoardPostScraper,
         ICEE_NOTICE_BOARD_ID: MainBoardPostScraper,
-        SWAI_NOTICE_BOARD_ID: MainBoardPostScraper,
+        SWAI_NOTICE_BOARD_ID: SwProgramPostScraper,
         SMCAREER_NOTICE_BOARD_ID: MainBoardPostScraper,
     }
     
