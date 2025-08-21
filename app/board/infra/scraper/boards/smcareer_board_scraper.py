@@ -106,7 +106,7 @@ class SmCareerBoardScraper(BoardScraper):
                         date = raw_date
 
                     # 카테고리: 기본값으로
-                    post_type = "N/A"
+                    post_type = "기본"
 
                     # 조회수: 다섯 번째 td 안의 <p>
                     view_p     = tr.select("td")[4].select_one("p")
