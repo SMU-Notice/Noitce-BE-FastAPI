@@ -66,8 +66,7 @@ class SwaiBoardScraper(BoardScraper):
                     date = date_tag.get_text(strip=True) if date_tag else "N/A"
 
                     # 카테고리
-                    category_tag = tr.select_one(".cate")
-                    post_type = category_tag.get_text(strip=True).strip("[]") if category_tag else "N/A"
+                    post_type = "기본"
 
                     # 조회수
                     views_tag = tr.select_one("td.td_num")
