@@ -65,6 +65,7 @@ class LibraryBoardScraper(BoardScraper):
                     # 카테고리 버튼 (일반, 학사 등)
                     post_type = "기본"
 
+
                     if post_type and title.startswith(post_type):
                         title = title[len(post_type):].strip()  #카테고리식으로 들어간 앞 단어(ex. [학술]) 제거
 
