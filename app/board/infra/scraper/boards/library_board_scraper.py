@@ -63,8 +63,8 @@ class LibraryBoardScraper(BoardScraper):
                     date = date.replace(".", "-") #yyyy.mm.dd 를 yyyy-mm-dd로 변경 
 
                     # 카테고리 버튼 (일반, 학사 등)
-                    btn = dl.select_one("dd a > span.btn") or dl.select_one("dd > span.btn") #span btn 탐색 후 선택
-                    post_type = btn.get_text(strip=True) if btn else "기본"
+                    post_type = "기본"
+
 
                     if post_type and title.startswith(post_type):
                         title = title[len(post_type):].strip()  #카테고리식으로 들어간 앞 단어(ex. [학술]) 제거
