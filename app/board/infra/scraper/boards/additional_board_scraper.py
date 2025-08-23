@@ -68,8 +68,7 @@ class AdditionalBoardScraper(BoardScraper):
                     date = re.sub(r"작성일", "", date).strip()
 
                     # 카테고리 (일반, 학사 등)
-                    category_tag = li.select_one(".cate")
-                    post_type = category_tag.text.strip("[]") if category_tag else "기본"
+                    post_type = "기본"
 
                     # 조회수
                     views_tag = li.select_one(".board-thumb-content-views")
