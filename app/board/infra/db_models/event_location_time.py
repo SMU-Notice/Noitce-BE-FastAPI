@@ -1,7 +1,7 @@
 from sqlalchemy import Integer, String, Date, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import date, datetime, timezone
-from .base import Base 
+from app.database.base import Base  # 공통 Base 사용
 
 class EventLocationTime(Base):
     __tablename__ = "event_location_time"

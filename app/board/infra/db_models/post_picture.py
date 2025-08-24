@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
 from sqlalchemy.sql import func
-from app.board.infra.db_models.base import Base
+from app.database.base import Base  # 공통 Base 사용
 
 class PostPicture(Base):
     """게시글 사진 정보 DB 모델"""
