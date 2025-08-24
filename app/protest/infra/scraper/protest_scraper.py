@@ -11,7 +11,6 @@ import pdfplumber
 from bs4 import BeautifulSoup
 from zoneinfo import ZoneInfo
 
-from urllib.parse import urljoin
 import os
 
 # ProtestEvent 도메인 객체 import
