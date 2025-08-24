@@ -69,8 +69,7 @@ class MajorBoardScraper(BoardScraper):
                     )
 
                     # 카테고리
-                    category_tag = li.select_one(".cate")
-                    post_type = category_tag.get_text(strip=True).strip("[]") if category_tag else "기본"    #학과 게시판들은 카테고리 N/A
+                    post_type = "기본"
 
                     # 첨부파일 여부
                     file_tag = li.select_one("div.file_downWrap ul.filedown_list li")
