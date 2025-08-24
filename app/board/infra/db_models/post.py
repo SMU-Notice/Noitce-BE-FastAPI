@@ -2,7 +2,7 @@ from datetime import datetime, date, timezone
 from sqlalchemy import String, Text, Integer, Boolean, Date, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime, timezone
-from .base import Base 
+from app.database.base import Base  # 공통 Base 사용
 
 class Post(Base):
     __tablename__ = "post"

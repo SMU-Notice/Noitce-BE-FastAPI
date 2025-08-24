@@ -1,7 +1,7 @@
 # app/board/infra/db_models/board.py
 from sqlalchemy import String, Text, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
-from .base import Base  # 공통 Base 사용
+from app.database.base import Base  # 공통 Base 사용
 
 class Board(Base):
     __tablename__ = "board"

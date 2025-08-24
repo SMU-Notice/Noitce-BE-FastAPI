@@ -2,6 +2,7 @@ import logging
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.board.infra.schedulers.board_scrape_scheduler import BoardScrapeScheduler
+from app.protest.infra.scheduler.protest_scrape_scheduler import ProtestScrapeScheduler
 from app.board.infra.schedulers.scraper_initializer import initialize_scrapers
 from app.config.logging_config import setup_logging
 from app.config.container_config import configure_container
@@ -23,12 +24,16 @@ async def lifespan(app: FastAPI):
     container.wire()
     logger.info("Container wired successfully")
 
-    logger.info("Starting scheduler...")
+    logger.info("Starting board scheduler...")
     board_scheduler = BoardScrapeScheduler()
     board_scheduler.start()  # 앱 시작 시 스케줄러 실행
     
     # 모든 스크래퍼 등록
     initialize_scrapers(board_scheduler)
+
+    logger.info("Starting protest scheduler...")
+    protest_scheduler = ProtestScrapeScheduler()
+    protest_scheduler.add_protest_scrape_job()  # 시위 정보 스크래핑 작업 등록
 
     yield # 서버 실행
 
