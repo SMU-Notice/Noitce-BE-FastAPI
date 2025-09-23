@@ -1,31 +1,38 @@
 import logging
+import os
 from app.board.domain.post_picture import PostPicture
 from app.board.application.dto.summary_processed_post_dto import SummaryProcessedPostDTO
 from app.board.application.ports.ocr_port import OCRPort
+from app.board.application.summary_service import SummaryService
 from app.board.infra.ocr.clova_ocr_adapter import ClovaOCRAdapter
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-class OCRProcessor:
-    """OCR 처리를 담당하는 서비스"""
+ENABLE_SUMMARY = os.getenv("ENABLE_SUMMARY", "false").lower() == "true"
+
+
+class OcrPipeline:
+    """OCR 및 요약 처리를 담당하는 파이프라인"""
     
-    def __init__(self, ocr_adapter: Optional[OCRPort] = None):
+    def __init__(self, ocr_adapter: Optional[OCRPort] = None, summary_service: Optional[SummaryService] = None):
         self.ocr_adapter = ocr_adapter or ClovaOCRAdapter()
+        self.summary_service = summary_service or SummaryService()
     
     async def process_dto(self, summary_processed_dto: SummaryProcessedPostDTO) -> SummaryProcessedPostDTO:
         """
-        SummaryProcessedPostDTO를 받아서 이미지가 있으면 OCR 처리를 수행
+        SummaryProcessedPostDTO를 받아서 이미지가 있으면 OCR 처리를 수행하고, 
+        OCR 성공 시 요약도 함께 처리
         
         Args:
             summary_processed_dto: OCR 처리할 DTO
             
         Returns:
-            SummaryProcessedPostDTO: OCR 처리 완료된 DTO
+            SummaryProcessedPostDTO: OCR 및 요약 처리 완료된 DTO
         """
         if not summary_processed_dto.has_post_picture():
             logger.info("이미지가 없어서 OCR 처리를 건너뜁니다")
-            return summary_processed_dto
+            return await self._process_summary(summary_processed_dto)
         
         post_picture = summary_processed_dto.post_picture
         
@@ -37,7 +44,8 @@ class OCRProcessor:
             # OCR 실패 시 post_picture를 None으로 설정
             summary_processed_dto.post_picture = None
         
-        return summary_processed_dto
+        # 요약 처리 (OCR 성공/실패와 관계없이)
+        return await self._process_summary(summary_processed_dto)
     
     async def _process_ocr_for_picture(self, post_picture: PostPicture) -> bool:
         """
@@ -73,3 +81,22 @@ class OCRProcessor:
             logger.error(f"OCR 처리 중 오류 발생: {e}")
             post_picture.picture_summary = "실패"
             return False
+    
+    async def _process_summary(self, dto: SummaryProcessedPostDTO) -> SummaryProcessedPostDTO:
+        """
+        요약 처리 수행
+        
+        Args:
+            dto: 요약 처리할 DTO
+            
+        Returns:
+            SummaryProcessedPostDTO: 요약 처리 완료된 DTO
+        """
+        if not ENABLE_SUMMARY:
+            logger.debug("ENABLE_SUMMARY=False - 요약 처리를 건너뜁니다")
+            return dto
+        
+        logger.debug("요약 처리 단계 시작")
+        processed_dto = await self.summary_service.create_summary_processed_post(dto)
+        logger.debug("요약 처리 단계 완료")
+        return processed_dto

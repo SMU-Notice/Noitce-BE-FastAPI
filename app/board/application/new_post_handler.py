@@ -23,7 +23,6 @@ class NewPostHandler:
         self.post_repo = post_repo or PostRepository()
         # 환경변수로 상세 스크랩 여부 결정
         self.enable_scraping = os.environ.get("ENABLE_DETAIL_SCRAPING", "false").lower() == "true"
-        self.post_scraper_factory = PostScraperFactory()
         self.location_repo = location_repo or EventLocationTimeRepository()
         self.post_picture_repo = PostPictureRepository()
         self.post_processing_pipeline = PostProcessingPipeline()
