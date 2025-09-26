@@ -68,3 +68,6 @@ __pycache__/
 
 # Docker files
 docker-compose.yml
+
+# ocr json files
+*.json

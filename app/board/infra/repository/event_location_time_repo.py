@@ -4,7 +4,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 from app.database.db import get_db
 from app.board.infra.db_models.event_location_time import EventLocationTime
-from app.board.infra.db_models.post import Post
 from app.board.domain.repository.event_location_time_repo import IEventLocationTimeRepository
 from app.board.domain.event_location_time import EventLocationTime as EventLocationTimeVO
 import logging

@@ -1,15 +1,36 @@
+# Web Framework
 fastapi              # FastAPI web framework
 uvicorn              # ASGI server for running FastAPI
+
+# Database
 sqlalchemy           # SQLAlchemy ORM for database operations
 databases            # Async database connection library
 mysqlclient          # MySQL client for synchronous operations
 aiomysql             # Async MySQL client
 cryptography         # Required for MySQL authentication (sha256_password, caching_sha2_password)
+
+# Task Scheduling
 apscheduler          # Task scheduling for periodic job execution
+
+# HTTP and Web Scraping
 requests             # HTTP request library (synchronous)
-beautifulsoup4       # HTML parsing library for web scraping
-python-dotenv        # Load environment variables from .env files
 aiohttp              # Async HTTP client/server library
+beautifulsoup4       # HTML parsing library for web scraping
+
+# Environment and Configuration
+python-dotenv        # Load environment variables from .env files
+
+# Data Validation
 pydantic             # Data validation and settings management (used with FastAPI)
+
+# Dependency Injection
 dependency-injector  # Dependency injection container library
+
+# AI/ML Services
 openai               # OpenAI API client for AI/ML services
+
+# Numerical Computing
+numpy                # Numerical computing library
+
+# PDF Processing (missing from your code but imported)
+pdfplumber           # PDF text extraction library

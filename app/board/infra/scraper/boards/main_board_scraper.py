@@ -2,7 +2,7 @@ import logging
 import aiohttp
 from bs4 import BeautifulSoup
 import re
-from app.board.infra.scraper.board_scraper_base import BoardScraper
+from app.board.infra.scraper.boards.board_scraper_base import BoardScraper
 from app.config.scraper_config import get_scraper_config
 from app.board.infra.scraper.models.scraped_post import ScrapedPost
 
@@ -37,17 +37,21 @@ class MainBoardScraper(BoardScraper):
                 posts = {}
 
                 for li in soup.select(".board-thumb-wrap > li"):
-                    # 공지글일 경우 무시 
-                    if li.select_one(".noti"):
-                        continue
+                    # # 공지글일 경우 무시 -> 학교 홈페이지에서 공지 사항일 경우 일반글에 나오지 않게 바꿈
+                    # if li.select_one(".noti"):
+                    #     continue
 
                     # 캠퍼스 정보
+                    # html 클래스 sangmyung에서 sang으로 변경됨
+                    if self.campus_filter == "sangmyung":
+                        self.campus_filter = "sang"
+
                     campus_tag = li.select_one(".cmp")
                     if campus_tag:
                         campus_class = campus_tag["class"]
                         if self.campus_filter not in campus_class:
                             continue
-                        campus = "상명" if self.campus_filter == "sangmyung" else "서울"
+                        campus = "서울" if self.campus_filter == "seoul" else "상명"
                     else:
                         campus = "N/A"
 

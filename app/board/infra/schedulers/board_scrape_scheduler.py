@@ -2,7 +2,10 @@ import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import logging
 import os
-from app.board.infra.scraper.board_scraper_base import BoardScraper
+from app.containers import Container
+from dependency_injector.wiring import Provide, inject
+
+from app.board.infra.scraper.boards.board_scraper_base import BoardScraper
 from app.board.application.scraped_post_manager import ScrapedPostManager
 from app.board.infra.http_new_post_sender import HttpNewPostSender
 
@@ -12,17 +15,16 @@ logger = logging.getLogger(__name__)
 class BoardScrapeScheduler:
     """게시판 스크래핑 작업을 스케줄링하는 클래스"""
     
-    def __init__(self):
-        self.scheduler = AsyncIOScheduler()
-        self.scrape_lock = asyncio.Lock()
-
-        # 환경변수에서 webhook endpoint 가져오기
-        webhook_endpoint = os.getenv(
-            "WEBHOOK_ENDPOINT"
-        )
-        logger.info(f"웹훅 엔드포인트 설정: {webhook_endpoint}")
-
-        self.scraped_post_manager = ScrapedPostManager(new_post_sender=HttpNewPostSender(webhook_endpoint=webhook_endpoint))
+    @inject
+    def __init__(
+        self,
+        scheduler: AsyncIOScheduler = Provide[Container.scheduler],
+        scrape_lock: asyncio.Lock = Provide[Container.scrape_lock],
+        scraped_post_manager: ScrapedPostManager = Provide[Container.scraped_post_manager]
+    ):
+        self.scheduler = scheduler
+        self.scrape_lock = scrape_lock
+        self.scraped_post_manager = scraped_post_manager
 
     def start(self):
         """스케줄러 시작"""

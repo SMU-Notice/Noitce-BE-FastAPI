@@ -1,5 +1,5 @@
 # app/board/infra/db_models/__init__.py
-from .base import Base
+from app.database.base import Base
 from .board import Board
 from .post import Post
 

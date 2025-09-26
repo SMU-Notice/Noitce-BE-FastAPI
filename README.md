@@ -1,28 +1,73 @@
-# Board Scraper
+# SMU Notice
 
-FastAPI 기반 게시판 스크래핑 시스템으로, 대학교 공지사항을 자동으로 수집하고 관리하는 프로젝트입니다.
+FastAPI 기반 게시판 스크래핑 시스템으로, 대학교 공지사항을 자동으로 수집하고 관리하는 레포입니다.
 
 ## 📑 목차
 
 1. [프로젝트 소개](#1-프로젝트-소개)
+   - [1.1 프로젝트 개요](#11-프로젝트-개요)
+   - [1.2 전체 시스템 개요](#12-전체-시스템-개요)
+   - [1.3 역할 및 기능](#13-역할-및-기능)
+     - [1.3.1 역할](#131-역할)
+     - [1.3.2 기능](#132-기능)
+     - [1.3.3 스크래핑 객체 지향 다이어그램](#133-스크래핑-객체-지향-다이어그램)
 2. [서버 아키텍처](#2-서버-아키텍처)
-3. [스크래퍼 추가 방법](#3-스크래퍼-추가-방법)
-4. [개발 가이드라인](#4-개발-가이드라인)
-5. [시작하기](#5-시작하기)
-6. [API 엔드포인트](#6-api-엔드포인트)
+3. [기술 스택](#3-기술-스택)
+4. [스크래퍼 추가 방법](#4-스크래퍼-추가-방법)
+   - [4.1 게시판(Board) 스크래퍼 추가 방법](<#41-게시판(Board)-스크래퍼-추가-방법>)
+   - [4.2 게시물(Post) 스크래퍼 추가 방법](<#42-게시물(Post)-스크래퍼-추가-방법>)
+5. [개발 가이드라인](#5-개발-가이드라인)
+6. [시작하기](#6-시작하기)
+7. [API 엔드포인트](#7-api-엔드포인트)
 
 ## 1. 프로젝트 소개
 
-- **목적**: 대학교 게시판의 공지사항들을 자동으로 수집하여 통합 관리
-- **특징**: DDD 아키텍처 적용으로 확장 가능하고 유지보수 용이한 구조
-- **기술**: FastAPI, SQLAlchemy, APScheduler를 활용한 비동기 처리
+### 1.1 프로젝트 개요
 
-### 주요 기능
+- **목적**: 대학교 게시판의 게시물들을 자동으로 수집하여 통합 관리 및 새로운 게시물 이메일 전송 등 편의 기능 제공
 
-- 🔄 **자동 스크래핑**: 설정된 주기마다 자동으로 게시판 데이터 수집
-- 📊 **중복 검사**: 기존 게시물과 신규 게시물을 구분하여 처리
-- 🗄️ **데이터 관리**: MySQL 데이터베이스를 통한 체계적인 데이터 저장
-- 📈 **확장성**: 새로운 게시판 추가가 간편한 모듈형 구조
+### 1.2 전체 시스템 개요
+
+- **스크랩핑 서버** : 게시판 데이터 수집 및 저장
+- ** 웹 서버** : 회원 관리, 웹 API 서비스, 이메일 전송
+
+<서버 로직>
+<img width="793" height="511" alt="Image" src="https://github.com/user-attachments/assets/b290018e-691c-4359-b77a-ba80cec08093" />
+
+<서버 아키텍쳐>
+<img width="815" height="708" alt="Image" src="https://github.com/user-attachments/assets/4ab2bda4-2b12-4b08-bc85-0dd56dd54adb" />
+
+### 1.3 역할 및 기능
+
+#### 1.3.1 역할
+
+1. 게시물 데이터 수집 및 저장
+2. 게시물 본문 및 사진 요약
+3. 새로운 게시물 정보 웹 서버로 전송
+4. 게시물에서 학교 장소 이벤트 수집
+5. 경찰청 사이트에서 시위 정보(pdf) 수집 및 저장
+
+#### 1.3.2 기능
+
+- **자동 스크래핑**: 비동기 스케줄러 기반 주기적 수집 (스크래핑 락 기능 포함)
+- **중복 검사**: 기존 게시물과 신규 게시물을 구분하여 처리
+- **데이터 저장**: SQLAlchemy ORM을 통한 체계적 저장
+- **확장성**: 새로운 게시판 추가가 간편한 모듈형 구조
+- **AI 요약**: AI API 연동으로 게시물 본문 & 사진 자동 요약 생성
+
+#### 1.3.3 스크래핑 객체 지향 다이어그램
+
+<img width="1250" height="661" alt="Image" src="https://github.com/user-attachments/assets/b5b07673-f8e7-48b7-ae45-67b438607a37" />
+
+다이어그램 진행 순서
+
+1. 게시판에서 게시물 목록 스크랩
+2. 기존 게시물 & 새로운 게시물 분류
+3. 기존 게시물 조회수 DB 갱신
+4. 새로운 게시물에서 게시물 본문 & 사진 1장 (존재 시) 스크랩
+5. 게시물 본문 & 사진 (존재 시) AI 요약 & 이벤트 장소 존재 시 추출
+6. 새로운 게시물 데이터 DB 저장
+7. 새로운 게시물 정보 이메일 서버로 전송
 
 ## 2. 서버 아키텍처
 
@@ -38,7 +83,8 @@ app/
     ├── domain/                 # 🟢 도메인 계층
     │   └── repository/        # Repository 인터페이스
     ├── application/           # 🟡 애플리케이션 계층
-    │   └── handlers/          # 유스케이스 처리
+    │   ├── services/
+        └── handlers/          # 유스케이스 처리
     └── infra/                 # 🔴 인프라 계층
         ├── repository/        # Repository 구현체
         ├── scraper/          # 스크래퍼 관련
@@ -74,20 +120,69 @@ app/
 2. 스크래퍼 → 웹사이트에서 데이터 수집
 3. 핸들러 → 신규/기존 게시물 분류
 4. Repository → 데이터베이스 저장/업데이트
+4. Sender -> 새로운 게시물 정보 API 서버로 전송
 ```
 
-## 3. 스크래퍼 추가 방법
+## 3. 기술 스택
+
+### Framework
+
+- **FastAPI**: 고성능 비동기 웹 프레임워크
+- **Python 3.11**: 주 개발 언어
+
+### 아키텍처 & 의존성 관리
+
+- **dependency-injector**: 의존성 주입 컨테이너
+- **Clean Architecture**: DDD 기반 계층형 아키텍처
+
+### 데이터베이스 & ORM
+
+- **MySQL**: 메인 데이터베이스
+- **SQLAlchemy**: ORM 및 데이터베이스 연동
+- **aiomysql**: 비동기 MySQL 드라이버
+
+### 스크래핑 & 파싱
+
+- **aiohttp**: 비동기 HTTP 클라이언트
+- **BeautifulSoup4**: HTML 파싱
+- **requests**: HTTP 요청 처리
+
+### 스케줄링 & 백그라운드
+
+- **AsyncIOScheduler**: 주기적 작업 스케줄링
+
+### AI & 자연어 처리
+
+- **OpenAI API**: 텍스트 요약 생성
+- **Naver OCR**: 이미지 텍스트 추출
+
+### 개발 & 배포
+
+- **Docker**: 컨테이너화
+- **Docker Compose**: 멀티 컨테이너 관리
+- **logging**: 로깅 시스템
+
+### 환경 설정
+
+- **python-dotenv**: 환경변수 관리
+
+### 의존성 관리
+
+- **pip**: 패키지 관리
+- **requirements.txt**: 의존성 명시
+
+## 4. 스크래퍼 추가 방법
 
 새로운 게시판의 스크래퍼를 추가하는 과정을 단계별로 설명합니다.
 
-### Step 1: 설정 추가
+### 4.1 게시판(Board) 스크래퍼 추가 방법
+
+#### Step 1: 설정 추가
 
 `app/config/scraper_config.py`에 새로운 스크래퍼 설정을 추가합니다.
 
 ```python
 # app/config/scraper_config.py
-from pydantic import BaseModel
-from typing import Dict, Literal
 
 class ScraperConfig(BaseModel):
     board_id: int
@@ -96,31 +191,43 @@ class ScraperConfig(BaseModel):
     interval: int
     campus: Literal["sangmyung", "seoul"]
 
-SCRAPER_CONFIGS = {
-    # 기존 설정들
-    "main_board_sangmyung": ScraperConfig(
-        board_id=1,
-        base_url="https://www.smu.ac.kr/kor/life/notice.do",
-        params={
-            "srCampus": "smu",
-            "mode": "list",
-            "articleLimit": 50,
-            "article.offset": 0
-        },
-        interval=3600,  # 1시간
-        campus="sangmyung"
-    ),
+# 자동으로 환경변수를 가져옵니다
+class EnvVars:
+   def __getattr__(self, name):
+       value = os.getenv(name)
+       if value is None:
+           raise AttributeError(f"Environment variable {name} not found")
+       try:
+           return int(value)
+       except ValueError:
+           return value
 
-    # 새로운 스크래퍼 설정 추가
+env = EnvVars()
+
+SCRAPER_CONFIGS = {
+   "main_board_sangmyung": ScraperConfig(
+       board_id=env.MAIN_BOARD_SANGMYUNG_BOARD_ID,
+       base_url="https://www.smu.ac.kr/kor/life/notice.do",
+       params={
+           "srCampus": "smu",
+           "mode": "list",
+           "articleLimit": 50,
+           "article.offset": 0
+       },
+       interval=env.MAIN_BOARD_SANGMYUNG_INTERVAL,
+       campus="sang"
+   ),
+
+       # 새로운 스크래퍼 설정 추가
     "new_board_scraper": ScraperConfig(
-        board_id=3,  # 새로운 board_id
+        board_id=env.NEW_BOARD_ID,,  # 새로운 board_id
         base_url="https://example.ac.kr/notice",
         params={
             "page": 1,
             "limit": 50
         },
-        interval=1800,  # 30분
-        campus="seoul"  # 또는 "sangmyung"
+        interval=env.NEW_BOARD_INTERVAL,  # 30분
+        campus="seoul"  # 서울 캠퍼스
     )
 }
 
@@ -129,7 +236,7 @@ def get_scraper_config(scraper_name: str) -> ScraperConfig:
     return SCRAPER_CONFIGS.get(scraper_name)
 ```
 
-### Step 2: 스크래퍼 클래스 구현
+#### Step 2: 스크래퍼 클래스 구현
 
 `app/board/infra/scraper/`에 새로운 스크래퍼 클래스를 생성합니다.
 
@@ -152,7 +259,7 @@ class NewBoardScraper(BoardScraper):
         pass
 ```
 
-### Step 3: 스크래퍼 등록
+#### Step 3: 스크래퍼 등록
 
 `app/board/infra/schedulers/scraper_initializer.py`에서 새 스크래퍼를 등록합니다.
 
@@ -178,7 +285,7 @@ def initialize_scrapers(scheduler: BoardScrapeScheduler):
     logger.info(f"모든 스크래퍼 등록 완료: 총 {len(scrapers)}개")
 ```
 
-### Step 4: 데이터베이스 설정
+#### Step 4: 데이터베이스 설정
 
 새로운 게시판 정보를 데이터베이스에 추가합니다.
 
@@ -187,7 +294,7 @@ INSERT INTO board (id, campus, site, board_type, url)
 VALUES (3, 'seoul', 'Example University', 'notice', 'https://example.ac.kr');
 ```
 
-### Step 5: 서버 재시작
+#### Step 5: 서버 재시작
 
 ```bash
 uvicorn app.main:app --reload
@@ -195,7 +302,40 @@ uvicorn app.main:app --reload
 
 서버가 시작되면 새로운 스크래퍼가 자동으로 등록되고 설정된 주기마다 실행됩니다.
 
-## 4. 개발 가이드라인
+### 4.2 게시물(Post) 스크래퍼 추가 방법
+
+#### Step 1: 스크래퍼 코드 추가
+
+`app/board/infra/scraper/posts/` 디렉토리에 IPostContentScraper 인터페이스를 구현한 새로운 스크래퍼 코드 추가
+
+```python
+class IPostContentScraper(ABC):
+    """게시물 콘텐츠 스크래핑 인터페이스"""
+
+    @abstractmethod
+    async def extract_post_content_from_url(self, post: Post) -> SummaryProcessedPostDTO:
+        """공개 API - 외부에서 호출"""
+        pass
+
+```
+
+#### Step 2: 설정 추가
+
+`app/board/infra/scraper/posts/scraper_factory.py`에 새로운 스크래퍼 설정을 추가합니다.
+
+```python
+# 환경변수에서 새로운 게시판 ID 가져오기
+NEW_BOARD_ID = int(os.getenv("NEW_BOARD_ID"))
+
+# _board_scraper_mapping에 새로운 매핑 추가
+_board_scraper_mapping: Dict[int, type] = {
+    MAIN_BOARD_SANGMYUNG_BOARD_ID: MainBoardPostScraper,
+    MAIN_BOARD_SEOUL_BOARD_ID: MainBoardPostScraper,
+    NEW_BOARD_ID: NewBoardPostScraper,  # 새로운 스크래퍼 추가
+}
+```
+
+## 5. 개발 가이드라인
 
 ### 스크래퍼 개발 규칙
 
@@ -212,20 +352,11 @@ uvicorn app.main:app --reload
 - **interval**: 스크래핑 실행 간격 (초 단위)
 - **campus**: 캠퍼스 구분 ("sangmyung" 또는 "seoul")
 
-## 5. 시작하기
+## 6. 시작하기
 
 ### 1. 환경 설정
 
 ```bash
-# 프로젝트 클론
-git clone <repository-url>
-cd board-scraper
-
-# 가상환경 생성 및 활성화
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-
 # 의존성 설치
 pip install -r requirements.txt
 ```
@@ -262,9 +393,6 @@ CREATE DATABASE board_scraper;
 # 개발 서버 실행 (자동 재시작)
 uvicorn app.main:app --reload --port 8000
 
-# 또는 FastAPI CLI 사용
-fastapi dev app/main.py
-
 # 프로덕션 실행
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
@@ -289,7 +417,7 @@ INFO: MainBoardScraper_2 등록 완료
 INFO: 모든 스크래퍼 등록 완료: 총 2개
 ```
 
-## 6. API 엔드포인트
+## 7. API 엔드포인트
 
 ```bash
 # 서버 상태 확인

@@ -8,6 +8,9 @@ from app.board.domain.post import Post as PostVO
 from app.board.infra.db_models.post import Post
 from app.board.domain.repository.post_repo import IPostRepository
 from app.database.db import get_db
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PostRepository(IPostRepository):
@@ -15,13 +18,13 @@ class PostRepository(IPostRepository):
     async def create_posts(self, posts: List[PostVO]) -> List[PostVO]:
         """
         여러 개의 게시글을 배치로 저장하고 저장된 데이터를 반환합니다.
-        
+
         Args:
             posts (List[PostVO]): 저장할 게시글 도메인 객체 리스트
-            
+
         Returns:
             List[PostVO]: 저장된 게시글 객체 리스트 (DB에서 생성된 ID 등 포함)
-            
+
         Raises:
             SQLAlchemyError: 데이터베이스 저장 중 오류 발생 시
         """
@@ -29,24 +32,34 @@ class PostRepository(IPostRepository):
             try:
                 # 배치 변환 (빠른 리스트 컴프리헨션)
                 post_models = self._convert_to_models_batch(posts)
-                
+
                 # 배치 추가
                 db.add_all(post_models)
-                
+
                 # flush()로 DB에 반영하되 트랜잭션은 유지 (ID 등 자동생성 값 획득)
                 await db.flush()
-                
+
+                logger.debug("Flush 후 저장된 게시물 ID: %s", [post.id for post in post_models])
+                logger.debug("Flush 후 저장된 게시물 요약: %s", [post.content_summary for post in post_models])
+
                 # 저장된 모델들을 배치로 VO 변환
                 saved_post_vos = self._convert_to_domains_batch(post_models)
-                
+
+                logger.debug("VO 변환 후 게시물 ID: %s", [vo.id for vo in saved_post_vos])
+                logger.debug("VO 변환 후 게시물 요약: %s", [vo.content_summary for vo in saved_post_vos])
+
                 # 최종 커밋
                 await db.commit()
-                
+
+                logger.debug("Commit 완료")
+
                 return saved_post_vos
-                
+
             except SQLAlchemyError as e:
                 await db.rollback()
+                logger.error("DB 저장 중 오류 발생: %s", e)
                 raise e
+
 
     async def read_posts_desc_by_id(self, board_id: int, record_count: int) -> List[PostVO]:
         """
@@ -295,6 +308,55 @@ class PostRepository(IPostRepository):
             except SQLAlchemyError as e:
                 await db.rollback()
                 raise e
+            
+    async def update_view_counts_only(self, posts: List[PostVO]) -> None:
+        """
+        게시글의 조회수만 배치로 업데이트합니다.
+        
+        Args:
+            posts (List[PostVO]): 업데이트할 게시글 객체 리스트 (id와 view_count만 사용)
+            
+        Raises:
+            SQLAlchemyError: 데이터베이스 업데이트 중 오류 발생 시
+        """
+        if not posts:
+            return
+            
+        async for db in get_db():
+            try:
+                current_time = datetime.now()
+                
+                # 조회수만 업데이트하는 배치 쿼리
+                post_ids = [post.id for post in posts]
+                view_count_cases = []
+                params = {}
+                
+                for i, post in enumerate(posts):
+                    view_count_cases.append(f"WHEN id = :id_{i} THEN :view_count_{i}")
+                    params.update({
+                        f'id_{i}': post.id,
+                        f'view_count_{i}': post.view_count,
+                    })
+                
+                # 조회수와 scraped_at만 업데이트하는 쿼리
+                batch_update_query = text(f"""
+                    UPDATE post SET
+                        view_count = CASE {' '.join(view_count_cases)} END,
+                        scraped_at = :scraped_at
+                    WHERE id IN ({','.join([f':id_{i}' for i in range(len(posts))])})
+                """)
+                
+                params['scraped_at'] = current_time
+                
+                await db.execute(batch_update_query, params)
+                await db.commit()
+                
+                logger.info("조회수 배치 업데이트 완료: %d개 게시글", len(posts))
+                
+            except SQLAlchemyError as e:
+                await db.rollback()
+                logger.error("조회수 업데이트 중 오류 발생: %s", e)
+                raise e
 
     def _convert_to_models_batch(self, post_vos: List[PostVO]) -> List[Post]:
         """
@@ -306,21 +368,7 @@ class PostRepository(IPostRepository):
         Returns:
             List[Post]: SQLAlchemy 모델 객체 리스트
         """
-        return [
-            Post(
-                id=vo.id,
-                board_id=vo.board_id,
-                original_post_id=vo.original_post_id,
-                type_=vo.post_type,
-                title=vo.title,
-                content_summary=vo.content_summary,
-                view_count=vo.view_count,
-                url=vo.url,
-                has_reference=vo.has_reference,
-                posted_date=vo.posted_date,
-                scraped_at=datetime.now() 
-            ) for vo in post_vos
-        ]
+        return [Post(**vo.to_dict()) for vo in post_vos]
 
     def _convert_to_domains_batch(self, post_models: List[Post]) -> List[PostVO]:
         """
@@ -332,19 +380,4 @@ class PostRepository(IPostRepository):
         Returns:
             List[PostVO]: 게시글 도메인 객체 리스트
         """
-        return [
-            PostVO(
-                id=m.id,
-                board_id=m.board_id,
-                original_post_id=m.original_post_id,
-                post_type=m.type_,
-                title=m.title,
-                content_summary=m.content_summary,
-                view_count=m.view_count,
-                url=m.url,
-                has_reference=m.has_reference,
-                posted_date=m.posted_date,
-            ) for m in post_models
-        ]
-    
-    
+        return [PostVO.from_dict(m.__dict__) for m in post_models]

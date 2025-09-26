@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 from app.board.domain.event_location_time import EventLocationTime
-from app.board.application.dto.scraped_content import ScrapedContent
+from app.board.domain.post import Post
 
 class SummaryPort(ABC):
     """요약 서비스 아웃바운드 포트"""
     
     @abstractmethod
-    async def summarize_post_content(self, content: ScrapedContent) -> 'SummarizedScrapedContent':
+    async def summarize_post_content(self, post: Post) -> Post:
         """
         게시물 본문을 요약합니다.
         
@@ -15,7 +15,7 @@ class SummaryPort(ABC):
             content: 요약할 게시물 콘텐츠
             
         Returns:
-            SummarizedScrapedContent: 요약 결과
+            Post: 요약 결과
         """
         pass
     
