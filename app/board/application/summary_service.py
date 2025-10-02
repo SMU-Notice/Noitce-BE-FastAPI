@@ -176,15 +176,12 @@ class SummaryService:
         if hasattr(location, 'end_date') and location.end_date is not None:
             end_date = str(location.end_date)
         
-        # 이벤트 시간 정보
-        event_time = location.event_time if location.event_time else ""
-        
         # 모든 날짜 정보가 없는 경우는 위치명만으로 키 생성
-        if not start_date and not end_date and not event_time:
+        if not start_date and not end_date:
             return location_name
         
-        # 키 조합: "위치명|시작날짜|종료날짜|이벤트시간"
-        key = f"{location_name}|{start_date}|{end_date}|{event_time}"
+        # 키 조합: "위치명|시작날짜|종료날짜"
+        key = f"{location_name}|{start_date}|{end_date}"
         return key
 
     async def _extract_location_from_content(self, summary_processed_dto: SummaryProcessedPostDTO) -> Optional[List[EventLocationTime]]:
